@@ -1,6 +1,8 @@
 package request;
 
-public class JoinGame {
+import java.io.Serializable;
+
+public class JoinGame implements Serializable {
 
 	private int playerID;
 	private String gameURL;
