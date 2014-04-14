@@ -27,7 +27,8 @@ public class Test2Servlet extends HttpServlet {
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 		resp.setContentType("text/plain");
-		resp.getWriter().println("Hello, world2");
+		resp.getWriter().println("Deleted playerList");
+		syncCache.delete("playerList");
 	}
 	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
