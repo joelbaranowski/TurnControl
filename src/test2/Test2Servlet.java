@@ -141,10 +141,7 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "getGameList":{
 				ArrayList<String> gl = (ArrayList<String>) syncCache.get("gameList");
-				String ret = "";
-				for(String gu : gl){
-					ret += gu + "\n";
-				}
+				String ret = g.toJson(gl);
 				resp.getWriter().println(ret);
 				break;
 			}
