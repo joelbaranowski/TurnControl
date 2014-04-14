@@ -81,24 +81,35 @@ public class Test2Servlet extends HttpServlet {
 				int newPlayerScore = tuf.getNewScore();
 				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
 				String gtj = g.toJson(tt);
+				
+				String gameURL = "";
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				for(JoinGame jog : pll){
+					if(jog.getPlayerID() == newPlayer)
+						gameURL = jog.getGameURL();
+				}
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-				TestPost tp = new TestPost();
-				tp.run(mew);
+				TakeTurnPost ttp = new TakeTurnPost();
+				ttp.run(mew, gameURL);
 				break;
 			}
 			case "startGame":{
 				syncCache.put("isStarted", true);
 				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				String player0GameUrl = "";
 				for(JoinGame jog : pll){
 					int currentPlayer = jog.getPlayerID();
+					String gameURL = jog.getGameURL();
 					TurnFinished turf = new TurnFinished(currentPlayer, 0);
 					syncCache.put("player" + currentPlayer, currentPlayer);
+					if(currentPlayer == 0)
+						player0GameUrl = gameURL;
 				}
 				TakeTurn tt = new TakeTurn(0, 0);
 				String gtj = g.toJson(tt);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-				TestPost tp = new TestPost();
-				tp.run(mew);
+				TakeTurnPost ttp = new TakeTurnPost();
+				ttp.run(mew, player0GameUrl);
 				break;
 			}
 			case "endGame":{
