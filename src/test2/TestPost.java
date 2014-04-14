@@ -17,17 +17,14 @@ public class TestPost {
 
 	Gson g = new Gson();
 	
-	public String run(){
+	public String run(MethodWrapper mw){
 		MakePost mp = new MakePost("http://1-dot-utopian-hearth-531.appspot.com/test");
-		TakeTurn jg = new TakeTurn(0, 0);
-		String jgs = g.toJson(jg);
-		MethodWrapper mw = new MethodWrapper("takeTurn", jgs);
 		try {
 			return mp.execute(mw);
 	    } 
 		catch (Exception exception) {
 			exception.printStackTrace();
 	    }
-		return "test failed";
+		return "no return";
 	}
 }
