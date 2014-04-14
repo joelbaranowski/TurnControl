@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import javax.servlet.http.*;
@@ -20,6 +21,7 @@ import request.TurnFinished;
 import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 @SuppressWarnings("serial")
 public class Test2Servlet extends HttpServlet {
@@ -33,7 +35,7 @@ public class Test2Servlet extends HttpServlet {
 		String data = req.getParameter("data");
 		if(method == null || data == null)
 			return;
-		this.execute(req.getParameter("method"), req.getParameter("data"), req, resp);
+		this.execute(req.getParameter("method"), URLDecoder.decode(req.getParameter("data"), "UTF-8"), req, resp);
 	}
 	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -56,13 +58,13 @@ public class Test2Servlet extends HttpServlet {
 				    for(JoinGame gj : value){
 				    	ret += gj.getPlayerID() + ", " + gj.getGameURL() + "\n";
 				    }
-				    resp.getWriter().println("player added");
+				    resp.getWriter().println("{'return':'player added'}");
 				}
 				else{
 					value = new ArrayList<JoinGame>();
 					value.add(jg);
 					syncCache.put("playerList", value);
-					resp.getWriter().println("player added");
+					resp.getWriter().println("{'return':'player added'}");
 				}
 				break;
 			}
