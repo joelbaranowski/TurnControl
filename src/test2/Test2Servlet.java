@@ -13,6 +13,7 @@ import javax.servlet.http.*;
 import request.ExceptionStringify;
 import request.JoinGame;
 import request.MethodWrapper;
+import request.RegisterGame;
 import request.TakeTurn;
 import request.TurnFinished;
 
@@ -28,20 +29,26 @@ public class Test2Servlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		resp.setContentType("text/plain");
-		resp.getWriter().println("Deleted playerList");
-		syncCache.delete("playerList");
+		String method = req.getParameter("method");
+		String data = req.getParameter("data");
+		if(method == null || data == null)
+			return;
+		this.execute(req.getParameter("method"), req.getParameter("data"), req, resp);
 	}
 	
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 		resp.setContentType("text/plain");
-		resp.getWriter().println("from server");
 		MethodWrapper mw = g.fromJson(req.getReader(), MethodWrapper.class);
-		switch(mw.getMethod()){
+		resp.getWriter().println("test3");
+		this.execute(mw.getMethod(), mw.getData(), req, resp);
+		//end of doPost
+	}
+	
+	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
+		switch(method){
 			case "joinGame":{
-				JoinGame jg = (JoinGame) g.fromJson(mw.getData(), JoinGame.class);
-				resp.getWriter().println(jg.getPlayerID());
+				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
 				ArrayList<JoinGame> value = (ArrayList<JoinGame>)syncCache.get("playerList");
 				if(value != null){
 				   	value.add(jg);
@@ -63,7 +70,7 @@ public class Test2Servlet extends HttpServlet {
 				boolean isStarted = (boolean) syncCache.get("isStarted");
 				if(!isStarted)
 					break;
-				TurnFinished tf = (TurnFinished) g.fromJson(mw.getData(), TurnFinished.class);
+				TurnFinished tf = (TurnFinished) g.fromJson(data, TurnFinished.class);
 				int currPlayer = tf.getPlayerID();
 				int newScore = tf.getNewScore();
 				syncCache.put("player" + currPlayer, newScore);
@@ -96,8 +103,55 @@ public class Test2Servlet extends HttpServlet {
 				syncCache.put("isStarted", false);
 				break;
 			}
+			case "registerGame":{
+				try{
+				RegisterGame rg = (RegisterGame) g.fromJson(data, RegisterGame.class);
+				String gameUrl = rg.getUrl();
+				ArrayList<String> value = (ArrayList<String>)syncCache.get("gameList");
+				if(value != null){
+				   	value.add(gameUrl);
+				    syncCache.put("gameList", value);
+				    String ret = "";
+				    for(String gu : value){
+				    	ret += gu + "\n";
+				    }
+				    resp.getWriter().println(ret);
+				}
+				else{
+					value = new ArrayList<String>();
+					value.add(gameUrl);
+					syncCache.put("gameList", value);
+				}
+				}
+				catch(Exception e){
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().println(es.run());
+					return;
+				}
+				break;
+			}
+			case "deletePlayerList":{
+				resp.getWriter().println("Deleted playerList");
+				syncCache.delete("playerList");
+				break;
+			}
+			case "deleteGameList":{
+				resp.getWriter().println("Deleted gameList");
+				syncCache.delete("gameList");
+				break;
+			}
+			case "getGameList":{
+				ArrayList<String> gl = (ArrayList<String>) syncCache.get("gameList");
+				String ret = "";
+				for(String gu : gl){
+					ret += gu + "\n";
+				}
+				resp.getWriter().println(ret);
+				break;
+			}
+		//end of switch
 		}
-
-		resp.getWriter().println(" | end");
+	//end of method
 	}
+//end of class
 }

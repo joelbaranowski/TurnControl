@@ -18,7 +18,7 @@ public class TestPost {
 	Gson g = new Gson();
 	
 	public String run(MethodWrapper mw){
-		MakePost mp = new MakePost("http://1-dot-utopian-hearth-531.appspot.com/test");
+		MakePost mp = new MakePost("http://1-dot-utopian-hearth-533.appspot.com/test");
 		try {
 			return mp.execute(mw);
 	    } 
