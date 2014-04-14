@@ -56,12 +56,13 @@ public class Test2Servlet extends HttpServlet {
 				    for(JoinGame gj : value){
 				    	ret += gj.getPlayerID() + ", " + gj.getGameURL() + "\n";
 				    }
-				    resp.getWriter().println(ret);
+				    resp.getWriter().println("player added");
 				}
 				else{
 					value = new ArrayList<JoinGame>();
 					value.add(jg);
 					syncCache.put("playerList", value);
+					resp.getWriter().println("player added");
 				}
 				break;
 			}
