@@ -40,7 +40,6 @@ public class Test2Servlet extends HttpServlet {
 			throws IOException {
 		resp.setContentType("text/plain");
 		MethodWrapper mw = g.fromJson(req.getReader(), MethodWrapper.class);
-		resp.getWriter().println("test3");
 		this.execute(mw.getMethod(), mw.getData(), req, resp);
 		//end of doPost
 	}
