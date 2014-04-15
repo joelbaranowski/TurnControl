@@ -102,8 +102,7 @@ public class Test2Servlet extends HttpServlet {
 						gameURL = jog.getGameURL();
 				}
 				
-				TurnFinished tuf = (TurnFinished)syncCache.get("player" + newPlayer);
-				int newPlayerScore = tuf.getNewScore();
+				int newPlayerScore = (int)syncCache.get("player" + newPlayer);
 				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
 				String gtj = g.toJson(tt);
 				
@@ -126,7 +125,7 @@ public class Test2Servlet extends HttpServlet {
 					int currentPlayer = jog.getPlayerID();
 					String gameURL = jog.getGameURL();
 					TurnFinished turf = new TurnFinished(currentPlayer, 0);
-					syncCache.put("player" + currentPlayer, currentPlayer);
+					syncCache.put("player" + currentPlayer, 0);
 					if(currentPlayer == 0)
 						player0GameUrl = gameURL;
 				}
@@ -169,8 +168,8 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "deleteGameList":{
+				deleteGames();
 				resp.getWriter().println("Deleted gameList");
-				syncCache.delete("gameList");
 				break;
 			}
 			case "getGameList":{
@@ -184,16 +183,42 @@ public class Test2Servlet extends HttpServlet {
 				ArrayList<String> playerResults = new ArrayList<String>();
 				for(JoinGame jog : pll){
 					int playerID = jog.getPlayerID();
-					TurnFinished tf = (TurnFinished)syncCache.get("playerID" + playerID);
-					if(tf != null)
-						playerResults.add(playerID + ": " + tf.getNewScore());
+					playerResults.add(playerID + ": " + (int)syncCache.get("player" + playerID));
 				}
 				resp.getWriter().println(g.toJson(playerResults));
+				break;
+			}
+			case "deletePlayers":{
+				deletePlayers();
+				resp.getWriter().println("{'result':'Deleted players'}");
+				break;
+			}
+			case "init":{
+				deletePlayers();
+				deleteGames();
+				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
 		//end of switch
 		}
 	//end of method
+	}
+	
+	public void deletePlayers(){
+		ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+		if(pll == null){
+			return;
+		}
+		ArrayList<String> playerResults = new ArrayList<String>();
+		for(JoinGame jog : pll){
+			int playerID = jog.getPlayerID();
+			syncCache.delete("player" + playerID);
+		}
+		syncCache.delete("playerList");
+	}
+	
+	public void deleteGames(){
+		syncCache.delete("gameList");
 	}
 //end of class
 }
