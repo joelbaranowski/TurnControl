@@ -69,6 +69,7 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "turnFinished":{
+				try{
 				boolean isStarted = (boolean) syncCache.get("isStarted");
 				if(!isStarted)
 					break;
@@ -77,23 +78,36 @@ public class Test2Servlet extends HttpServlet {
 				int newScore = tf.getNewScore();
 				syncCache.put("player" + currPlayer, newScore);
 				int newPlayer = currPlayer + 1;
+				
+				
+				String gameURL = "";
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				int numberOfPlayers = 0;
+				for(JoinGame jog : pll){
+					numberOfPlayers+=1;
+					if(jog.getPlayerID() == newPlayer)
+						gameURL = jog.getGameURL();
+				}
+				if(newPlayer >= numberOfPlayers)
+					newPlayer = 0;
 				TurnFinished tuf = (TurnFinished)syncCache.get("player" + newPlayer);
 				int newPlayerScore = tuf.getNewScore();
 				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
 				String gtj = g.toJson(tt);
 				
-				String gameURL = "";
-				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
-				for(JoinGame jog : pll){
-					if(jog.getPlayerID() == newPlayer)
-						gameURL = jog.getGameURL();
-				}
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, gameURL);
 				break;
+				}
+				catch(Exception e){
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().println(es.run());
+					return;
+				}
 			}
 			case "startGame":{
+				try{
 				syncCache.put("isStarted", true);
 				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				String player0GameUrl = "";
@@ -111,6 +125,12 @@ public class Test2Servlet extends HttpServlet {
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, player0GameUrl);
 				break;
+				}
+				catch(Exception e){
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().println(es.run());
+					return;
+				}
 			}
 			case "endGame":{
 				syncCache.put("isStarted", false);
