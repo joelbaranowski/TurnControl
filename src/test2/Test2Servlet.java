@@ -83,13 +83,18 @@ public class Test2Servlet extends HttpServlet {
 				String gameURL = "";
 				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				int numberOfPlayers = 0;
+				
 				for(JoinGame jog : pll){
 					numberOfPlayers+=1;
+				}
+				
+				if(newPlayer >= numberOfPlayers)
+					newPlayer = 0;
+				for(JoinGame jog : pll){
 					if(jog.getPlayerID() == newPlayer)
 						gameURL = jog.getGameURL();
 				}
-				if(newPlayer >= numberOfPlayers)
-					newPlayer = 0;
+				
 				TurnFinished tuf = (TurnFinished)syncCache.get("player" + newPlayer);
 				int newPlayerScore = tuf.getNewScore();
 				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
@@ -124,6 +129,7 @@ public class Test2Servlet extends HttpServlet {
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, player0GameUrl);
+				resp.getWriter().println("{'return':'started game and sent take turn to player 0'}");
 				break;
 				}
 				catch(Exception e){
@@ -134,6 +140,7 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "endGame":{
 				syncCache.put("isStarted", false);
+				resp.getWriter().println("{'return':'ended game'}");
 				break;
 			}
 			case "registerGame":{
