@@ -42,7 +42,14 @@ public class Test2Servlet extends HttpServlet {
 			throws IOException {
 		resp.setContentType("text/plain");
 		MethodWrapper mw = g.fromJson(req.getReader(), MethodWrapper.class);
-		this.execute(mw.getMethod(), mw.getData(), req, resp);
+		try{
+			this.execute(mw.getMethod(), mw.getData(), req, resp);
+		}
+		catch(Exception e){
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().println(es.run());
+			return;
+		}
 		//end of doPost
 	}
 	
@@ -112,7 +119,6 @@ public class Test2Servlet extends HttpServlet {
 				}
 			}
 			case "startGame":{
-				try{
 				syncCache.put("isStarted", true);
 				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				String player0GameUrl = "";
@@ -131,12 +137,6 @@ public class Test2Servlet extends HttpServlet {
 				ttp.run(mew, player0GameUrl);
 				resp.getWriter().println("{'return':'started game and sent take turn to player 0'}");
 				break;
-				}
-				catch(Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println(es.run());
-					return;
-				}
 			}
 			case "endGame":{
 				syncCache.put("isStarted", false);
@@ -144,7 +144,6 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "registerGame":{
-				try{
 				RegisterGame rg = (RegisterGame) g.fromJson(data, RegisterGame.class);
 				String gameUrl = rg.getUrl();
 				ArrayList<String> value = (ArrayList<String>)syncCache.get("gameList");
@@ -162,12 +161,6 @@ public class Test2Servlet extends HttpServlet {
 					value.add(gameUrl);
 					syncCache.put("gameList", value);
 				}
-				}
-				catch(Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println(es.run());
-					return;
-				}
 				break;
 			}
 			case "deletePlayerList":{
@@ -184,6 +177,18 @@ public class Test2Servlet extends HttpServlet {
 				ArrayList<String> gl = (ArrayList<String>) syncCache.get("gameList");
 				String ret = g.toJson(gl);
 				resp.getWriter().println(ret);
+				break;
+			}
+			case "getPlayerList":{
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				ArrayList<String> playerResults = new ArrayList<String>();
+				for(JoinGame jog : pll){
+					int playerID = jog.getPlayerID();
+					TurnFinished tf = (TurnFinished)syncCache.get("playerID" + playerID);
+					if(tf != null)
+						playerResults.add(playerID + ": " + tf.getNewScore());
+				}
+				resp.getWriter().println(g.toJson(playerResults));
 				break;
 			}
 		//end of switch
