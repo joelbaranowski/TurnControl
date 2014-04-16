@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.*;
 
 import request.ExceptionStringify;
