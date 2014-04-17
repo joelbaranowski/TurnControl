@@ -232,6 +232,7 @@ public class Test2Servlet extends HttpServlet {
 			        if( tx.isActive(  ) ) {
 			            tx.rollback(  );
 			        }
+			        pm.close();
 			    }
 				
 				pm = pmf.getPersistenceManager();
@@ -255,6 +256,7 @@ public class Test2Servlet extends HttpServlet {
 			        if( tx.isActive(  ) ) {
 			            tx.rollback(  );
 			        }
+			        pm.close();
 			    }
 				
 				pm = pmf.getPersistenceManager();
@@ -405,18 +407,18 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "deleteGameList":{
-				deleteGames(pm);
+				deleteGames(pm, resp);
 				resp.getWriter().println("Deleted gameList");
 				break;
 			}
 			case "deletePlayers":{
-				deletePlayers(pm);
+				deletePlayers(pm, resp);
 				resp.getWriter().println("{'result':'Deleted players'}");
 				break;
 			}
 			case "init":{
-				deletePlayers(pm);
-				deleteGames(pm);
+				deletePlayers(pm, resp);
+				deleteGames(pm, resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
@@ -425,7 +427,8 @@ public class Test2Servlet extends HttpServlet {
 	//end of method
 	}
 	
-	public void deletePlayers(PersistenceManager pm){
+	public void deletePlayers(PersistenceManager pm, HttpServletResponse resp) throws IOException{
+		try{
 		List<JoinGame> value = new ArrayList<JoinGame>();
 		Transaction tx = pm.currentTransaction();
 		try
@@ -452,6 +455,7 @@ public class Test2Servlet extends HttpServlet {
 			return;
 		}
 
+		pm = pmf.getPersistenceManager();
 		List<TakeTurn> tt = new ArrayList<TakeTurn>();
 		tx = pm.currentTransaction();
 		try
@@ -472,9 +476,15 @@ public class Test2Servlet extends HttpServlet {
 	        }
 	        pm.close();
 	    }
+		}
+		catch(Exception e){
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().println(es.run());
+		}
 	}
 	
-	public void deleteGames(PersistenceManager pm){
+	public void deleteGames(PersistenceManager pm, HttpServletResponse resp) throws IOException{
+		try{
 		List<RegisterGame> value = new ArrayList<RegisterGame>();
 		Transaction tx = pm.currentTransaction();
 		try
@@ -489,12 +499,11 @@ public class Test2Servlet extends HttpServlet {
 		}
 		catch (Exception e){
 		}
-		finally {
-	        if( tx.isActive(  ) ) {
-	            tx.rollback(  );
-	        }
-	        pm.close();
-	    }
+		}
+		catch(Exception e){
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().println(es.run());
+		}
 	}
 	
 //end of class

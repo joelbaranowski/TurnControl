@@ -9,7 +9,7 @@ public class TakeTurn {
 
 	@Persistent
 	@PrimaryKey
-	private long playerID;
+	private Long playerID;
 	
 	@Persistent
 	private int currentScore;
