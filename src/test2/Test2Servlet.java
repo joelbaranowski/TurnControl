@@ -38,7 +38,7 @@ public class Test2Servlet extends HttpServlet {
 	private Gson g = new Gson();
 	private MemcacheService syncCache = MemcacheServiceFactory.getMemcacheService();
 	PersistenceManagerFactory pmf = JDOHelper.getPersistenceManagerFactory("transactions-optional");
-	PersistenceManager pm = pmf.getPersistenceManager();
+	
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -65,7 +65,7 @@ public class Test2Servlet extends HttpServlet {
 	}
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
-
+		PersistenceManager pm = pmf.getPersistenceManager();
 		switch(method){
 			case "joinGame":{
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
@@ -216,6 +216,7 @@ public class Test2Servlet extends HttpServlet {
 			        if( tx.isActive(  ) ) {
 			            tx.rollback(  );
 			        }
+			        pm.close();
 			    }
 				
 				resp.getWriter().println("size of result: " + value.size());
