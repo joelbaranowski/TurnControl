@@ -2,23 +2,23 @@ package request;
 
 public class TurnFinished {
 	
-	private int playerID;
+	private long playerID;
 	private int newScore;
 	
 	public TurnFinished(){
 		
 	}
 	
-	public TurnFinished(int playerID, int newScore){
+	public TurnFinished(long playerID, int newScore){
 		this.playerID = playerID;
 		this.newScore = newScore;
 	}
 
-	public int getPlayerID() {
+	public long getPlayerID() {
 		return playerID;
 	}
 
-	public void setPlayerID(int playerID) {
+	public void setPlayerID(long playerID) {
 		this.playerID = playerID;
 	}
 

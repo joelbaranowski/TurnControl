@@ -8,7 +8,15 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
+import javax.jdo.Extent;
+import javax.jdo.JDOHelper;
+import javax.jdo.PersistenceManager;
+import javax.jdo.PersistenceManagerFactory;
+import javax.jdo.Query;
+import javax.jdo.Transaction;
 import javax.servlet.ServletException;
 import javax.servlet.http.*;
 
@@ -29,6 +37,8 @@ public class Test2Servlet extends HttpServlet {
 	
 	private Gson g = new Gson();
 	private MemcacheService syncCache = MemcacheServiceFactory.getMemcacheService();
+	PersistenceManagerFactory pmf = JDOHelper.getPersistenceManagerFactory("transactions-optional");
+	PersistenceManager pm = pmf.getPersistenceManager();
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -55,25 +65,30 @@ public class Test2Servlet extends HttpServlet {
 	}
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
+
 		switch(method){
 			case "joinGame":{
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
-				ArrayList<JoinGame> value = (ArrayList<JoinGame>)syncCache.get("playerList");
-				if(value != null){
-				   	value.add(jg);
-				    syncCache.put("playerList", value);
-				    String ret = "";
-				    for(JoinGame gj : value){
-				    	ret += gj.getPlayerID() + ", " + gj.getGameURL() + "\n";
-				    }
-				    resp.getWriter().println("{'return':'player added'}");
+				
+				Transaction tx = pm.currentTransaction();
+				try
+				{
+				    // Start the transaction
+				    tx.begin();
+				    pm.makePersistent(jg);
+				    // Commit the transaction, flushing the object to the datastore
+				    tx.commit();
 				}
-				else{
-					value = new ArrayList<JoinGame>();
-					value.add(jg);
-					syncCache.put("playerList", value);
-					resp.getWriter().println("{'return':'player added'}");
-				}
+				catch (Exception e){}
+				finally {
+			        if( tx.isActive(  ) ) {
+			            tx.rollback(  );
+			        }
+			        pm.close(  );
+			    }
+				
+
+				resp.getWriter().println("{'return':'player added'}");
 				break;
 			}
 			case "turnFinished":{
@@ -82,10 +97,10 @@ public class Test2Servlet extends HttpServlet {
 				if(!isStarted)
 					break;
 				TurnFinished tf = (TurnFinished) g.fromJson(data, TurnFinished.class);
-				int currPlayer = tf.getPlayerID();
+				long currPlayer = tf.getPlayerID();
 				int newScore = tf.getNewScore();
 				syncCache.put("player" + currPlayer, newScore);
-				int newPlayer = currPlayer + 1;
+				long newPlayer = currPlayer + 1;
 				
 				
 				String gameURL = "";
@@ -123,7 +138,7 @@ public class Test2Servlet extends HttpServlet {
 				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				String player0GameUrl = "";
 				for(JoinGame jog : pll){
-					int currentPlayer = jog.getPlayerID();
+					long currentPlayer = jog.getPlayerID();
 					String gameURL = jog.getGameURL();
 					TurnFinished turf = new TurnFinished(currentPlayer, 0);
 					syncCache.put("player" + currentPlayer, 0);
@@ -180,10 +195,36 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "getPlayerList":{
-				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				List<JoinGame> value = new ArrayList<JoinGame>();
+				Transaction tx = pm.currentTransaction();
+				try
+				{
+				    // Start the transaction
+				    tx.begin();
+				    Query query = pm.newQuery(JoinGame.class);
+				    value =  (List<JoinGame>)query.execute();
+				    resp.getWriter().println("size 1: " + value.size());
+				    
+				    // Commit the transaction, flushing the object to the datastore
+				    tx.commit();
+				}
+				catch (Exception e){
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().println("es: " + es.run());
+				}
+				finally {
+			        if( tx.isActive(  ) ) {
+			            tx.rollback(  );
+			        }
+			        pm.close(  );
+			    }
+				
+				resp.getWriter().println("size of result: " + value.size());
+				if(true)
+					return;
 				ArrayList<String> playerResults = new ArrayList<String>();
-				for(JoinGame jog : pll){
-					int playerID = jog.getPlayerID();
+				for(JoinGame jog : value){
+					long playerID = jog.getPlayerID();
 					playerResults.add(playerID + ": " + (int)syncCache.get("player" + playerID));
 				}
 				resp.getWriter().println(g.toJson(playerResults));
@@ -212,7 +253,7 @@ public class Test2Servlet extends HttpServlet {
 		}
 		ArrayList<String> playerResults = new ArrayList<String>();
 		for(JoinGame jog : pll){
-			int playerID = jog.getPlayerID();
+			long playerID = jog.getPlayerID();
 			syncCache.delete("player" + playerID);
 		}
 		syncCache.delete("playerList");

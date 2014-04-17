@@ -2,25 +2,37 @@ package request;
 
 import java.io.Serializable;
 
+import javax.jdo.annotations.PersistenceCapable;
+import javax.jdo.annotations.Persistent;
+import javax.jdo.annotations.PrimaryKey;
+
+@PersistenceCapable
 public class JoinGame implements Serializable {
 
-	private int playerID;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6472887913423444316L;
+	@Persistent
+	@PrimaryKey
+	private Long playerID;
+	@Persistent
 	private String gameURL;
 	
 	public JoinGame(){
 		
 	}
 	
-	public JoinGame(int playerID, String gameURL){
+	public JoinGame(long playerID, String gameURL){
 		this.playerID = playerID;
 		this.gameURL = gameURL;
 	}
 
-	public int getPlayerID() {
+	public long getPlayerID() {
 		return playerID;
 	}
 
-	public void setPlayerID(int playerID) {
+	public void setPlayerID(long playerID) {
 		this.playerID = playerID;
 	}
 
