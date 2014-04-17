@@ -216,7 +216,6 @@ public class Test2Servlet extends HttpServlet {
 			        if( tx.isActive(  ) ) {
 			            tx.rollback(  );
 			        }
-			        pm.close(  );
 			    }
 				
 				resp.getWriter().println("size of result: " + value.size());
