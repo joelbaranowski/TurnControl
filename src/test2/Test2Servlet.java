@@ -203,7 +203,7 @@ public class Test2Servlet extends HttpServlet {
 				    tx.begin();
 				    Query query = pm.newQuery(JoinGame.class);
 				    value =  (List<JoinGame>)query.execute();
-				    resp.getWriter().println("size 1: " + value.size());
+				    resp.getWriter().println("size 1: " + value.get(0).getGameURL());
 				    
 				    // Commit the transaction, flushing the object to the datastore
 				    tx.commit();
