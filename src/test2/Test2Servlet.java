@@ -8,7 +8,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.*;
 
@@ -17,7 +19,6 @@ import request.JoinGame;
 import request.MethodWrapper;
 import request.RegisterGame;
 import request.TakeTurn;
-import request.TurnFinished;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -101,9 +102,9 @@ public class Test2Servlet extends HttpServlet {
 				boolean isStarted = (boolean) syncCache.get("isStarted");
 				if(!isStarted)
 					break;
-				TurnFinished tf = (TurnFinished) g.fromJson(data, TurnFinished.class);
+				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
 				int currPlayer = tf.getPlayerID();
-				int newScore = tf.getNewScore();
+				int newScore = tf.getCurrentScore();
 				syncCache.put("player" + currPlayer, newScore);
 				int newPlayer = currPlayer + 1;
 				
@@ -140,16 +141,36 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "startGame":{
 				syncCache.put("isStarted", true);
-				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
-				String player0GameUrl = "";
-				for(JoinGame jog : pll){
-					int currentPlayer = jog.getPlayerID();
-					String gameURL = jog.getGameURL();
-					TurnFinished turf = new TurnFinished(currentPlayer, 0);
-					syncCache.put("player" + currentPlayer, 0);
-					if(currentPlayer == 0)
-						player0GameUrl = gameURL;
+				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+				Query query = new Query("JoinGame", gameKey);
+				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				Map<Long, String> playerToGame = new HashMap<Long, String>();
+				for (Entity e : gameList) {
+					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
+				
+				String player0GameUrl = playerToGame.get(0);
+				
+				for(Long currentPlayer : playerToGame.keySet()){
+					Transaction tx = datastore.beginTransaction();
+					try {
+					
+					Key playerKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+					
+					Entity newPlayer = new Entity("TakeTurn", playerKey);
+					newPlayer.setProperty("playerID", currentPlayer);
+					newPlayer.setProperty("currentScore", 0);
+					datastore.put(newPlayer);
+					tx.commit();
+					}
+					catch(Exception e){
+						if(tx.isActive())
+							tx.rollback();
+						ExceptionStringify es = new ExceptionStringify(e);
+						resp.getWriter().print(es.run());
+					}
+				}
+				
 				TakeTurn tt = new TakeTurn(0, 0);
 				String gtj = g.toJson(tt);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
@@ -191,25 +212,26 @@ public class Test2Servlet extends HttpServlet {
 				resp.getWriter().println("added game");
 				break;
 			}
-			case "deletePlayerList":{
-				resp.getWriter().println("Deleted playerList");
-				syncCache.delete("playerList");
-				break;
-			}
 			case "getGameList":{
-				ArrayList<String> gl = (ArrayList<String>) syncCache.get("gameList");
-				String ret = g.toJson(gl);
-				resp.getWriter().println(ret);
+				Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+				Query query = new Query("RegisterGame", gameKey);
+				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				List<String> ret = new ArrayList<String>();
+				for (Entity e : gameList) {
+					ret.add((String) e.getProperty("url"));
+				}
+				resp.getWriter().println(g.toJson(ret));
 				break;
 			}
 			case "getPlayerList":{
-				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
-				ArrayList<String> playerResults = new ArrayList<String>();
-				for(JoinGame jog : pll){
-					int playerID = jog.getPlayerID();
-					playerResults.add(playerID + ": " + (int)syncCache.get("player" + playerID));
+				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+				Query query = new Query("JoinGame", gameKey);
+				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				Map<Long, String> playerToGame = new HashMap<Long, String>();
+				for (Entity e : gameList) {
+					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
-				resp.getWriter().println(g.toJson(playerResults));
+				resp.getWriter().println(g.toJson(playerToGame));
 				break;
 			}
 			case "deleteGameList":{
@@ -223,8 +245,8 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "init":{
-				deletePlayers(resp);
 				deleteGames(resp);
+				deletePlayers(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
