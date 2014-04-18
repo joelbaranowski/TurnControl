@@ -1,33 +1,24 @@
 package request;
 
-import javax.jdo.annotations.PersistenceCapable;
-import javax.jdo.annotations.Persistent;
-import javax.jdo.annotations.PrimaryKey;
-
-@PersistenceCapable
 public class TakeTurn {
 
-	@Persistent
-	@PrimaryKey
-	private Long playerID;
-	
-	@Persistent
+	private int playerID;
 	private int currentScore;
 	
 	public TakeTurn(){
 		
 	}
 	
-	public TakeTurn(long playerID, int currentScore){
+	public TakeTurn(int playerID, int currentScore){
 		this.playerID = playerID;
 		this.currentScore = currentScore;
 	}
 
-	public long getPlayerID() {
+	public int getPlayerID() {
 		return playerID;
 	}
 
-	public void setPlayerID(long playerID) {
+	public void setPlayerID(int playerID) {
 		this.playerID = playerID;
 	}
 

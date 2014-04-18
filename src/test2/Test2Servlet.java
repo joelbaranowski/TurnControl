@@ -8,27 +8,25 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import javax.jdo.Extent;
-import javax.jdo.JDOHelper;
-import javax.jdo.PersistenceManager;
-import javax.jdo.PersistenceManagerFactory;
-import javax.jdo.Query;
-import javax.jdo.Transaction;
-import javax.servlet.ServletException;
 import javax.servlet.http.*;
 
-import org.datanucleus.store.types.sco.simple.Collection;
-
 import request.ExceptionStringify;
-import request.GameStatus;
 import request.JoinGame;
 import request.MethodWrapper;
 import request.RegisterGame;
 import request.TakeTurn;
+import request.TurnFinished;
 
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.FetchOptions;
+import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.gson.Gson;
@@ -39,8 +37,6 @@ public class Test2Servlet extends HttpServlet {
 	
 	private Gson g = new Gson();
 	private MemcacheService syncCache = MemcacheServiceFactory.getMemcacheService();
-	PersistenceManagerFactory pmf = JDOHelper.getPersistenceManagerFactory("transactions-optional");
-	
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -67,144 +63,59 @@ public class Test2Servlet extends HttpServlet {
 	}
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
-		PersistenceManager pm = pmf.getPersistenceManager();
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 		switch(method){
 			case "joinGame":{
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
-				
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    pm.makePersistent(jg);
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
+				ArrayList<JoinGame> value = (ArrayList<JoinGame>)syncCache.get("playerList");
+				if(value != null){
+				   	value.add(jg);
+				    syncCache.put("playerList", value);
+				    String ret = "";
+				    for(JoinGame gj : value){
+				    	ret += gj.getPlayerID() + ", " + gj.getGameURL() + "\n";
+				    }
+				    resp.getWriter().println("{'return':'player added'}");
 				}
-				catch (Exception e){}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close(  );
-			    }
-				
-				resp.getWriter().println("{'return':'player added'}");
+				else{
+					value = new ArrayList<JoinGame>();
+					value.add(jg);
+					syncCache.put("playerList", value);
+					resp.getWriter().println("{'return':'player added'}");
+				}
 				break;
 			}
 			case "turnFinished":{
 				try{
-				GameStatus gs = new GameStatus(0L, false);
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(GameStatus.class);
-				    
-				    Collection result =  (Collection)query.execute();
-				    gs = (GameStatus)result.iterator().next();
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-					
-				if(!gs.getIsStarted())
+				boolean isStarted = (boolean) syncCache.get("isStarted");
+				if(!isStarted)
 					break;
-				
-				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
-				long currPlayer = tf.getPlayerID();
-				int newScore = tf.getCurrentScore();
-					
-				tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    pm.makePersistent(tf);
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close(  );
-			    }
+				TurnFinished tf = (TurnFinished) g.fromJson(data, TurnFinished.class);
+				int currPlayer = tf.getPlayerID();
+				int newScore = tf.getNewScore();
+				syncCache.put("player" + currPlayer, newScore);
+				int newPlayer = currPlayer + 1;
 				
 				
-				long newPlayer = currPlayer + 1;
 				String gameURL = "";
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+				int numberOfPlayers = 0;
 				
-				List<JoinGame> value = new ArrayList<JoinGame>();
-				tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(JoinGame.class);
-				    value =  (List<JoinGame>)query.execute();
-
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
+				for(JoinGame jog : pll){
+					numberOfPlayers+=1;
 				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
 				
-				int numberOfPlayers = value.size();
 				if(newPlayer >= numberOfPlayers)
 					newPlayer = 0;
-				
-				for(JoinGame jog : value){
+				for(JoinGame jog : pll){
 					if(jog.getPlayerID() == newPlayer)
 						gameURL = jog.getGameURL();
 				}
 				
-				int newPlayerScore = -1;
-				tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(TakeTurn.class, "id == " + newPlayer);
-				    Collection c = (Collection)query.execute();
-				    newPlayerScore = (int)c.iterator().next();
-				    
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-				
+				int newPlayerScore = (int)syncCache.get("player" + newPlayer);
 				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
-				
 				String gtj = g.toJson(tt);
+				
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, gameURL);
@@ -217,75 +128,17 @@ public class Test2Servlet extends HttpServlet {
 				}
 			}
 			case "startGame":{
-				GameStatus gs = new GameStatus(0L, true);
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    pm.makePersistent(gs);
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-				
-				pm = pmf.getPersistenceManager();
-				List<JoinGame> value = new ArrayList<JoinGame>();
-				tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(JoinGame.class);
-				    value =  (List<JoinGame>)query.execute();
-
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-				
-				pm = pmf.getPersistenceManager();
+				syncCache.put("isStarted", true);
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				String player0GameUrl = "";
-				for(JoinGame jog : value){
-					long currentPlayer = jog.getPlayerID();
+				for(JoinGame jog : pll){
+					int currentPlayer = jog.getPlayerID();
 					String gameURL = jog.getGameURL();
-					TakeTurn turf = new TakeTurn(currentPlayer, 0);
-					tx = pm.currentTransaction();
-					try
-					{
-					    // Start the transaction
-					    tx.begin();
-					    pm.makePersistent(turf);
-					    // Commit the transaction, flushing the object to the datastore
-					    tx.commit();
-					}
-					catch (Exception e){}
-					finally {
-				        if( tx.isActive(  ) ) {
-				            tx.rollback(  );
-				        }
-				    }
+					TurnFinished turf = new TurnFinished(currentPlayer, 0);
+					syncCache.put("player" + currentPlayer, 0);
 					if(currentPlayer == 0)
 						player0GameUrl = gameURL;
 				}
-				
-				if(!pm.isClosed())
-					pm.close();
 				TakeTurn tt = new TakeTurn(0, 0);
 				String gtj = g.toJson(tt);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
@@ -295,130 +148,62 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "endGame":{
-				GameStatus gs = new GameStatus(0L, false);
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    pm.makePersistent(gs);
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close(  );
-			    }
+				syncCache.put("isStarted", false);
 				resp.getWriter().println("{'return':'ended game'}");
 				break;
 			}
 			case "registerGame":{
 				RegisterGame rg = (RegisterGame) g.fromJson(data, RegisterGame.class);
-				
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    pm.makePersistent(rg);
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
+				Transaction tx = datastore.beginTransaction();
+				Key gameKey = KeyFactory.createKey("GameListKey", "GameList");
+				//Query query = new Query("GameList", gameKey).addSort("name", Query.SortDirection.DESCENDING);
+				//List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
+				try {
+					Entity newGame = new Entity("RegisterGame", gameKey);
+					newGame.setProperty("url", rg.getUrl());
+					datastore.put(newGame);
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-				catch (Exception e){}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close(  );
-			    }
+				tx.commit();
 				
-				resp.getWriter().println("Added game");
+				resp.getWriter().println("added game");
+				break;
+			}
+			case "deletePlayerList":{
+				resp.getWriter().println("Deleted playerList");
+				syncCache.delete("playerList");
 				break;
 			}
 			case "getGameList":{
-				List<RegisterGame> value = new ArrayList<RegisterGame>();
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(RegisterGame.class);
-				    value =  (List<RegisterGame>)query.execute();
-
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-				
-				String ret = g.toJson(value);
+				ArrayList<String> gl = (ArrayList<String>) syncCache.get("gameList");
+				String ret = g.toJson(gl);
 				resp.getWriter().println(ret);
 				break;
 			}
 			case "getPlayerList":{
-				List<JoinGame> value = new ArrayList<JoinGame>();
-				Transaction tx = pm.currentTransaction();
-				try
-				{
-				    // Start the transaction
-				    tx.begin();
-				    Query query = pm.newQuery(JoinGame.class);
-				    value =  (List<JoinGame>)query.execute();
-
-				    // Commit the transaction, flushing the object to the datastore
-				    tx.commit();
-				}
-				catch (Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
-				finally {
-			        if( tx.isActive(  ) ) {
-			            tx.rollback(  );
-			        }
-			        pm.close();
-			    }
-				try{
+				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
 				ArrayList<String> playerResults = new ArrayList<String>();
-				for(JoinGame jog : value){
-					long playerID = jog.getPlayerID();
-					String result = "Game has not started";
-					if(syncCache.get("player" + playerID) == null)
-						result = (String)syncCache.get("player" + playerID);
-					playerResults.add(playerID + ": " + result);
+				for(JoinGame jog : pll){
+					int playerID = jog.getPlayerID();
+					playerResults.add(playerID + ": " + (int)syncCache.get("player" + playerID));
 				}
 				resp.getWriter().println(g.toJson(playerResults));
-				}
-				catch(Exception e){
-					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().println("es: " + es.run());
-				}
 				break;
 			}
 			case "deleteGameList":{
-				deleteGames(pm, resp);
+				deleteGames(resp);
 				resp.getWriter().println("Deleted gameList");
 				break;
 			}
 			case "deletePlayers":{
-				deletePlayers(pm, resp);
+				deletePlayers();
 				resp.getWriter().println("{'result':'Deleted players'}");
 				break;
 			}
 			case "init":{
-				deletePlayers(pm, resp);
-				deleteGames(pm, resp);
+				deletePlayers();
+				deleteGames(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
@@ -427,84 +212,36 @@ public class Test2Servlet extends HttpServlet {
 	//end of method
 	}
 	
-	public void deletePlayers(PersistenceManager pm, HttpServletResponse resp) throws IOException{
+	public void deletePlayers(){
+		ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
+		if(pll == null){
+			return;
+		}
+		ArrayList<String> playerResults = new ArrayList<String>();
+		for(JoinGame jog : pll){
+			int playerID = jog.getPlayerID();
+			syncCache.delete("player" + playerID);
+		}
+		syncCache.delete("playerList");
+	}
+	
+	public void deleteGames( HttpServletResponse resp) throws IOException{
 		try{
-		List<JoinGame> value = new ArrayList<JoinGame>();
-		Transaction tx = pm.currentTransaction();
-		try
-		{
-		    // Start the transaction
-		    tx.begin();
-		    Query query = pm.newQuery(JoinGame.class);
-		    value =  (List<JoinGame>)query.execute();
-		    pm.deletePersistentAll(value);
-		    // Commit the transaction, flushing the object to the datastore
-		    tx.commit();
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Transaction tx = datastore.beginTransaction();
+		Key gameKey = KeyFactory.createKey("GameListKey", "GameList");
+		Query query = new Query("RegisterGame", gameKey).addSort("url", Query.SortDirection.DESCENDING);
+		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
+		for (Entity existingEntity : gameList) {
+			datastore.delete(existingEntity.getKey());
 		}
-		catch (Exception e){
-
 		}
-		finally {
-	        if( tx.isActive(  ) ) {
-	            tx.rollback(  );
-	        }
-	        pm.close();
-	    }
-		
-		if(value == null){
+		catch(Exception e){
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().println(es.run());
 			return;
 		}
 
-		pm = pmf.getPersistenceManager();
-		List<TakeTurn> tt = new ArrayList<TakeTurn>();
-		tx = pm.currentTransaction();
-		try
-		{
-		    // Start the transaction
-		    tx.begin();
-		    Query query = pm.newQuery(TakeTurn.class);
-		    tt =  (List<TakeTurn>)query.execute();
-		    pm.deletePersistentAll(tt);
-		    // Commit the transaction, flushing the object to the datastore
-		    tx.commit();
-		}
-		catch (Exception e){
-		}
-		finally {
-	        if( tx.isActive(  ) ) {
-	            tx.rollback(  );
-	        }
-	        pm.close();
-	    }
-		}
-		catch(Exception e){
-			ExceptionStringify es = new ExceptionStringify(e);
-			resp.getWriter().println(es.run());
-		}
 	}
-	
-	public void deleteGames(PersistenceManager pm, HttpServletResponse resp) throws IOException{
-		try{
-		List<RegisterGame> value = new ArrayList<RegisterGame>();
-		Transaction tx = pm.currentTransaction();
-		try
-		{
-		    // Start the transaction
-		    tx.begin();
-		    Query query = pm.newQuery(RegisterGame.class);
-		    value =  (List<RegisterGame>)query.execute();
-		    pm.deletePersistentAll(value);
-		    // Commit the transaction, flushing the object to the datastore
-		    tx.commit();
-		}
-		catch (Exception e){
-		}
-		}
-		catch(Exception e){
-			ExceptionStringify es = new ExceptionStringify(e);
-			resp.getWriter().println(es.run());
-		}
-	}
-	
 //end of class
 }
