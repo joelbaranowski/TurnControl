@@ -177,7 +177,7 @@ public class Test2Servlet extends HttpServlet {
 					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
 				
-				String player0GameUrl = playerToGame.get(0);
+				String player0GameUrl = playerToGame.get(0L);
 				
 				for(Long currentPlayer : playerToGame.keySet()){
 					Transaction tx = datastore.beginTransaction();
@@ -204,7 +204,7 @@ public class Test2Servlet extends HttpServlet {
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, player0GameUrl);
-				resp.getWriter().println("{'return':'started game and sent take turn to player 0'}");
+				resp.getWriter().println("{'return':'player number: " + playerToGame.size() + ", started game:" + player0GameUrl + "'}");
 				break;
 			}
 			case "endGame":{
