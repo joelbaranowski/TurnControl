@@ -130,7 +130,6 @@ public class Test2Servlet extends HttpServlet {
 				}
 				
 				Long newPlayerID = oldPlayerID + 1;
-				Map<Long, String> pl = new HashMap<Long, String>();
 				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", gameKey);
 				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
@@ -138,11 +137,14 @@ public class Test2Servlet extends HttpServlet {
 				for (Entity e : gameList) {
 					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
-				int numberOfPlayers = pl.size();
+				int numberOfPlayers = playerToGame.size();
+				resp.getWriter().println("#players: " + numberOfPlayers + " | newplayer: " + newPlayerID);
 				if(newPlayerID >= numberOfPlayers)
 					newPlayerID = 0L;
-				String newPlayerGameUrl = pl.get(newPlayerID);
-				
+				String newPlayerGameUrl = playerToGame.get(newPlayerID);
+				for(Long key : playerToGame.keySet())
+					resp.getWriter().println("key: " + key + " | value: " + playerToGame.get(key));
+				resp.getWriter().println("new player: " + newPlayerID + " | value: " + playerToGame.get(newPlayerID));
 				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
 				query = new Query("TakeTurn", playerScoreKey);
 				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
