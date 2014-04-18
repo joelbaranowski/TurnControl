@@ -26,6 +26,7 @@ import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.*;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
@@ -37,6 +38,7 @@ public class Test2Servlet extends HttpServlet {
 	
 	private Gson g = new Gson();
 	private MemcacheService syncCache = MemcacheServiceFactory.getMemcacheService();
+	DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -63,26 +65,35 @@ public class Test2Servlet extends HttpServlet {
 	}
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 		switch(method){
 			case "joinGame":{
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
-				ArrayList<JoinGame> value = (ArrayList<JoinGame>)syncCache.get("playerList");
-				if(value != null){
-				   	value.add(jg);
-				    syncCache.put("playerList", value);
-				    String ret = "";
-				    for(JoinGame gj : value){
-				    	ret += gj.getPlayerID() + ", " + gj.getGameURL() + "\n";
-				    }
-				    resp.getWriter().println("{'return':'player added'}");
+				Transaction tx = datastore.beginTransaction();
+				try {
+				
+				Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+				Query query = new Query("JoinGame", playerKey);
+				List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				for(Entity e : playerList)
+					if(((Long)e.getProperty("playerID")) == jg.getPlayerID()){
+						resp.getWriter().println("found match");
+						datastore.delete(e.getKey());
+						break;
+					}
+				
+				Entity newPlayer = new Entity("JoinGame", playerKey);
+				newPlayer.setProperty("playerID", jg.getPlayerID());
+				newPlayer.setProperty("gameURL", jg.getGameURL());
+				datastore.put(newPlayer);
+				tx.commit();
 				}
-				else{
-					value = new ArrayList<JoinGame>();
-					value.add(jg);
-					syncCache.put("playerList", value);
-					resp.getWriter().println("{'return':'player added'}");
+				catch(Exception e){
+					if(tx.isActive())
+						tx.rollback();
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().print(es.run());
 				}
+				resp.getWriter().println("player joined");
 				break;
 			}
 			case "turnFinished":{
@@ -155,18 +166,28 @@ public class Test2Servlet extends HttpServlet {
 			case "registerGame":{
 				RegisterGame rg = (RegisterGame) g.fromJson(data, RegisterGame.class);
 				Transaction tx = datastore.beginTransaction();
-				Key gameKey = KeyFactory.createKey("GameListKey", "GameList");
-				//Query query = new Query("GameList", gameKey).addSort("name", Query.SortDirection.DESCENDING);
-				//List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
 				try {
-					Entity newGame = new Entity("RegisterGame", gameKey);
-					newGame.setProperty("url", rg.getUrl());
-					datastore.put(newGame);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				tx.commit();
 				
+				Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+				Query query = new Query("RegisterGame", gameKey);
+				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				for(Entity e : gameList)
+					if(e.getProperty("url").equals(rg.getUrl())){
+						resp.getWriter().println("Game already registered");
+						return;
+					}
+				
+				Entity newGame = new Entity("RegisterGame", gameKey);
+				newGame.setProperty("url", rg.getUrl());
+				datastore.put(newGame);
+				tx.commit();
+				}
+				catch(Exception e){
+					if(tx.isActive())
+						tx.rollback();
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().print(es.run());
+				}
 				resp.getWriter().println("added game");
 				break;
 			}
@@ -197,12 +218,12 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "deletePlayers":{
-				deletePlayers();
+				deletePlayers(resp);
 				resp.getWriter().println("{'result':'Deleted players'}");
 				break;
 			}
 			case "init":{
-				deletePlayers();
+				deletePlayers(resp);
 				deleteGames(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
@@ -212,36 +233,43 @@ public class Test2Servlet extends HttpServlet {
 	//end of method
 	}
 	
-	public void deletePlayers(){
-		ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
-		if(pll == null){
-			return;
+	public void deletePlayers( HttpServletResponse resp) throws IOException{
+		Transaction tx = datastore.beginTransaction();
+		try {
+		Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+		Query query = new Query("JoinGame", playerKey);
+		List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+		for(Entity e : playerList)
+			datastore.delete(e.getKey());
+		tx.commit();
 		}
-		ArrayList<String> playerResults = new ArrayList<String>();
-		for(JoinGame jog : pll){
-			int playerID = jog.getPlayerID();
-			syncCache.delete("player" + playerID);
+		catch(Exception e){
+			if(tx.isActive())
+				tx.rollback();
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().print(es.run());
 		}
-		syncCache.delete("playerList");
+		resp.getWriter().println("player joined");
 	}
 	
 	public void deleteGames( HttpServletResponse resp) throws IOException{
-		try{
-		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 		Transaction tx = datastore.beginTransaction();
-		Key gameKey = KeyFactory.createKey("GameListKey", "GameList");
-		Query query = new Query("RegisterGame", gameKey).addSort("url", Query.SortDirection.DESCENDING);
-		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5));
+		try{
+		Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+		Query query = new Query("RegisterGame", gameKey);
+		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
 		for (Entity existingEntity : gameList) {
 			datastore.delete(existingEntity.getKey());
 		}
+		tx.commit();
 		}
 		catch(Exception e){
+			if(tx.isActive()){
+				tx.rollback();
+			}
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().println(es.run());
-			return;
 		}
-
 	}
 //end of class
 }
