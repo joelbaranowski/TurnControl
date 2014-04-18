@@ -2,31 +2,31 @@ package request;
 
 public class TakeTurn {
 
-	private int playerID;
-	private int currentScore;
+	private Long playerID;
+	private Long currentScore;
 	
 	public TakeTurn(){
 		
 	}
 	
-	public TakeTurn(int playerID, int currentScore){
+	public TakeTurn(Long playerID, Long currentScore){
 		this.playerID = playerID;
 		this.currentScore = currentScore;
 	}
 
-	public int getPlayerID() {
+	public Long getPlayerID() {
 		return playerID;
 	}
 
-	public void setPlayerID(int playerID) {
+	public void setPlayerID(Long playerID) {
 		this.playerID = playerID;
 	}
 
-	public int getCurrentScore() {
+	public Long getCurrentScore() {
 		return currentScore;
 	}
 
-	public void setCurrentScore(int currentScore) {
+	public void setCurrentScore(Long currentScore) {
 		this.currentScore = currentScore;
 	}
 }

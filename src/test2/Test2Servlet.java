@@ -103,8 +103,8 @@ public class Test2Servlet extends HttpServlet {
 				if(!isStarted)
 					break;
 				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
-				int oldPlayerScore = tf.getCurrentScore();
-				int oldPlayerID = tf.getPlayerID();
+				Long oldPlayerScore = tf.getCurrentScore();
+				Long oldPlayerID = tf.getPlayerID();
 				
 				//update the taketurn value
 				Transaction tx = datastore.beginTransaction();
@@ -126,10 +126,10 @@ public class Test2Servlet extends HttpServlet {
 					if(tx.isActive())
 						tx.rollback();
 					ExceptionStringify es = new ExceptionStringify(e);
-					resp.getWriter().print(es.run());
+					resp.getWriter().println(es.run());
 				}
 				
-				int newPlayerID = oldPlayerID + 1;
+				Long newPlayerID = oldPlayerID + 1;
 				Map<Long, String> pl = new HashMap<Long, String>();
 				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", gameKey);
@@ -140,7 +140,7 @@ public class Test2Servlet extends HttpServlet {
 				}
 				int numberOfPlayers = pl.size();
 				if(newPlayerID >= numberOfPlayers)
-					newPlayerID = 0;
+					newPlayerID = 0L;
 				String newPlayerGameUrl = pl.get(newPlayerID);
 				
 				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
@@ -148,9 +148,9 @@ public class Test2Servlet extends HttpServlet {
 				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
 				query.setFilter(f);
 				List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-				int newPlayerScore = -1;
+				Long newPlayerScore = -1L;
 				for(Entity e : playerScoreList)
-					newPlayerScore = (int)e.getProperty("currentScore");
+					newPlayerScore = (Long)e.getProperty("currentScore");
 				
 				TakeTurn tt = new TakeTurn(newPlayerID, newPlayerScore);
 				String gtj = g.toJson(tt);
@@ -199,7 +199,7 @@ public class Test2Servlet extends HttpServlet {
 					}
 				}
 				
-				TakeTurn tt = new TakeTurn(0, 0);
+				TakeTurn tt = new TakeTurn(0L, 0L);
 				String gtj = g.toJson(tt);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
