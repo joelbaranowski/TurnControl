@@ -141,6 +141,7 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "startGame":{
 				syncCache.put("isStarted", true);
+				deletePlayerScores(resp);
 				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", gameKey);
 				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
@@ -244,9 +245,15 @@ public class Test2Servlet extends HttpServlet {
 				resp.getWriter().println("{'result':'Deleted players'}");
 				break;
 			}
+			case "deletePlayerScores":{
+				deletePlayerScores(resp);
+				resp.getWriter().println("{'result':'Deleted player scores'}");
+				break;
+			}
 			case "init":{
 				deleteGames(resp);
 				deletePlayers(resp);
+				deletePlayerScores(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
@@ -262,6 +269,25 @@ public class Test2Servlet extends HttpServlet {
 		Query query = new Query("JoinGame", playerKey);
 		List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
 		for(Entity e : playerList)
+			datastore.delete(e.getKey());
+		tx.commit();
+		}
+		catch(Exception e){
+			if(tx.isActive())
+				tx.rollback();
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().print(es.run());
+		}
+		resp.getWriter().println("player joined");
+	}
+	
+	public void deletePlayerScores( HttpServletResponse resp) throws IOException{
+		Transaction tx = datastore.beginTransaction();
+		try {
+		Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+		Query query = new Query("TakeTurn", playerScoreKey);
+		List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+		for(Entity e : playerScoreList)
 			datastore.delete(e.getKey());
 		tx.commit();
 		}
