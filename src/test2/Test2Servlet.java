@@ -103,34 +103,61 @@ public class Test2Servlet extends HttpServlet {
 				if(!isStarted)
 					break;
 				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
-				int currPlayer = tf.getPlayerID();
-				int newScore = tf.getCurrentScore();
-				syncCache.put("player" + currPlayer, newScore);
-				int newPlayer = currPlayer + 1;
+				int oldPlayerScore = tf.getCurrentScore();
+				int oldPlayerID = tf.getPlayerID();
 				
-				
-				String gameURL = "";
-				ArrayList<JoinGame> pll = (ArrayList<JoinGame>)syncCache.get("playerList");
-				int numberOfPlayers = 0;
-				
-				for(JoinGame jog : pll){
-					numberOfPlayers+=1;
+				//update the taketurn value
+				Transaction tx = datastore.beginTransaction();
+				try {
+				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+				Query query = new Query("TakeTurn", playerScoreKey);
+				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, oldPlayerID);
+				query.setFilter(f);
+				List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				for(Entity e : playerScoreList)
+					datastore.delete(e.getKey());
+				Entity newPlayerScore = new Entity("TakeTurn", playerScoreKey);
+				newPlayerScore.setProperty("playerID", oldPlayerID);
+				newPlayerScore.setProperty("currentScore", oldPlayerScore);
+				datastore.put(newPlayerScore);
+				tx.commit();
+				}
+				catch(Exception e){
+					if(tx.isActive())
+						tx.rollback();
+					ExceptionStringify es = new ExceptionStringify(e);
+					resp.getWriter().print(es.run());
 				}
 				
-				if(newPlayer >= numberOfPlayers)
-					newPlayer = 0;
-				for(JoinGame jog : pll){
-					if(jog.getPlayerID() == newPlayer)
-						gameURL = jog.getGameURL();
+				int newPlayerID = oldPlayerID + 1;
+				Map<Long, String> pl = new HashMap<Long, String>();
+				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+				Query query = new Query("JoinGame", gameKey);
+				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				Map<Long, String> playerToGame = new HashMap<Long, String>();
+				for (Entity e : gameList) {
+					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
+				int numberOfPlayers = pl.size();
+				if(newPlayerID >= numberOfPlayers)
+					newPlayerID = 0;
+				String newPlayerGameUrl = pl.get(newPlayerID);
 				
-				int newPlayerScore = (int)syncCache.get("player" + newPlayer);
-				TakeTurn tt = new TakeTurn(newPlayer, newPlayerScore);
+				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+				query = new Query("TakeTurn", playerScoreKey);
+				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
+				query.setFilter(f);
+				List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				int newPlayerScore = -1;
+				for(Entity e : playerScoreList)
+					newPlayerScore = (int)e.getProperty("currentScore");
+				
+				TakeTurn tt = new TakeTurn(newPlayerID, newPlayerScore);
 				String gtj = g.toJson(tt);
 				
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
-				ttp.run(mew, gameURL);
+				ttp.run(mew, newPlayerGameUrl);
 				break;
 				}
 				catch(Exception e){
