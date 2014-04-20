@@ -23,6 +23,7 @@ import request.TakeTurn;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.EntityNotFoundException;
 import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -69,9 +70,47 @@ public class Test2Servlet extends HttpServlet {
 		switch(method){
 			case "joinGame":{
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
+
 				Transaction tx = datastore.beginTransaction();
+				Transaction tx2 = datastore.beginTransaction();
 				try {
 				
+				Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
+				System.out.println("Starting join game");
+				long newId;
+				
+				try {
+					System.out.println("Start a new try for getting next id");
+					Entity a = datastore.get(idKey);
+					System.out.println("Got entity from datastore");
+					newId = (long) a.getProperty("nextId");
+					System.out.println("Got id from entity");
+					a.setProperty("nextId",newId+1);
+					System.out.println("Set id in entity");
+					datastore.delete(idKey);
+					System.out.println("Delete entity by key");
+					datastore.put(a);
+					System.out.println("Add changed entity back");
+					tx2.commit();
+					System.out.println("tx commited");
+				}
+				catch (EntityNotFoundException e) {
+					System.out.println("Entity not found, handle exception");
+					//this is the first player to register, so no key in datastore
+					Entity a = new Entity(idKey);
+					System.out.println("created new entity");
+					a.setProperty("nextId", 1);
+					System.out.println("Set entity property");
+					newId = 0;
+					datastore.put(a);
+					System.out.println("Add entity to datastore");
+					tx2.commit();
+					System.out.println("tx commited");
+				}
+				
+				
+				
+				System.out.println("newId to use is: " + newId);
 				Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", playerKey);
 				List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
@@ -82,11 +121,15 @@ public class Test2Servlet extends HttpServlet {
 						break;
 					}
 				
+				System.out.println("Creating newPlayer entity");
+				
 				Entity newPlayer = new Entity("JoinGame", playerKey);
-				newPlayer.setProperty("playerID", jg.getPlayerID());
+				newPlayer.setProperty("playerID", newId);
 				newPlayer.setProperty("gameURL", jg.getGameURL());
+				System.out.println("Put new player");
 				datastore.put(newPlayer);
 				tx.commit();
+				System.out.println("committed");
 				}
 				catch(Exception e){
 					if(tx.isActive())
@@ -283,12 +326,19 @@ public class Test2Servlet extends HttpServlet {
 				deleteGames(resp);
 				deletePlayers(resp);
 				deletePlayerScores(resp);
+				deleteIdGen();
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
 		//end of switch
 		}
 	//end of method
+	}
+	
+	public void deleteIdGen() {
+		Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
+		datastore.delete(idKey);
+		
 	}
 	
 	public void deletePlayers( HttpServletResponse resp) throws IOException{
@@ -307,7 +357,7 @@ public class Test2Servlet extends HttpServlet {
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().print(es.run());
 		}
-		resp.getWriter().println("player joined");
+		resp.getWriter().println("player deleted");
 	}
 	
 	public void deletePlayerScores( HttpServletResponse resp) throws IOException{
@@ -326,7 +376,7 @@ public class Test2Servlet extends HttpServlet {
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().print(es.run());
 		}
-		resp.getWriter().println("player joined");
+		resp.getWriter().println("player score deleted");
 	}
 	
 	public void deleteGames( HttpServletResponse resp) throws IOException{
