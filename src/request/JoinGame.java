@@ -4,24 +4,26 @@ import java.io.Serializable;
 
 public class JoinGame implements Serializable {
 
-	private Long playerID;
+	private String playerName;
 	private String gameURL;
 	
 	public JoinGame(){
 		
 	}
 	
-	public JoinGame(Long playerID, String gameURL){
-		this.playerID = playerID;
+	public JoinGame(String playerName, String gameURL){
+		this.setPlayerName(playerName);
 		this.gameURL = gameURL;
 	}
 
-	public Long getPlayerID() {
-		return playerID;
+	
+
+	public String getPlayerName() {
+		return playerName;
 	}
 
-	public void setPlayerID(Long playerID) {
-		this.playerID = playerID;
+	public void setPlayerName(String playerName) {
+		this.playerName = playerName;
 	}
 
 	public String getGameURL() {

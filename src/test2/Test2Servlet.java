@@ -72,64 +72,42 @@ public class Test2Servlet extends HttpServlet {
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
 
 				Transaction tx = datastore.beginTransaction();
+				try {
+			
+
 				Transaction tx2 = datastore.beginTransaction();
-				try {
-				
+				//Get the playerId to use for this new player from the datastore
+				//And update the nextId field for future access
 				Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
-				System.out.println("Starting join game");
 				long newId;
+				Entity a = datastore.get(idKey);
+				newId = (long) a.getProperty("nextId");
+				a.setProperty("nextId",newId+1);
+				datastore.delete(idKey);
+				datastore.put(a);
+				tx2.commit();
+			
 				
-				try {
-					System.out.println("Start a new try for getting next id");
-					Entity a = datastore.get(idKey);
-					System.out.println("Got entity from datastore");
-					newId = (long) a.getProperty("nextId");
-					System.out.println("Got id from entity");
-					a.setProperty("nextId",newId+1);
-					System.out.println("Set id in entity");
-					datastore.delete(idKey);
-					System.out.println("Delete entity by key");
-					datastore.put(a);
-					System.out.println("Add changed entity back");
-					tx2.commit();
-					System.out.println("tx commited");
-				}
-				catch (EntityNotFoundException e) {
-					System.out.println("Entity not found, handle exception");
-					//this is the first player to register, so no key in datastore
-					Entity a = new Entity(idKey);
-					System.out.println("created new entity");
-					a.setProperty("nextId", 1);
-					System.out.println("Set entity property");
-					newId = 0;
-					datastore.put(a);
-					System.out.println("Add entity to datastore");
-					tx2.commit();
-					System.out.println("tx commited");
-				}
-				
-				
-				
-				System.out.println("newId to use is: " + newId);
+				//This checks if an existing player has the same name as the
+				//new player from the request, and if so deletes the existing entry
+				//Remove if you want multiple players with the same name
 				Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", playerKey);
 				List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
 				for(Entity e : playerList)
-					if(((Long)e.getProperty("playerID")) == jg.getPlayerID()){
+					if(((String)e.getProperty("playerName")).equals(jg.getPlayerName())){
 						resp.getWriter().println("found match");
 						datastore.delete(e.getKey());
 						break;
 					}
 				
-				System.out.println("Creating newPlayer entity");
 				
 				Entity newPlayer = new Entity("JoinGame", playerKey);
 				newPlayer.setProperty("playerID", newId);
 				newPlayer.setProperty("gameURL", jg.getGameURL());
-				System.out.println("Put new player");
+				newPlayer.setProperty("playerName", jg.getPlayerName());
 				datastore.put(newPlayer);
 				tx.commit();
-				System.out.println("committed");
 				}
 				catch(Exception e){
 					if(tx.isActive())
@@ -302,7 +280,7 @@ public class Test2Servlet extends HttpServlet {
 				List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
 				Map<Long, String> playerToGame = new HashMap<Long, String>();
 				for (Entity e : gameList) {
-					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
+					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("playerName") + "  at   " + (String)e.getProperty("gameURL"));
 				}
 				resp.getWriter().println(g.toJson(playerToGame));
 				break;
@@ -336,8 +314,13 @@ public class Test2Servlet extends HttpServlet {
 	}
 	
 	public void deleteIdGen() {
+		Transaction tx = datastore.beginTransaction();
 		Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
 		datastore.delete(idKey);
+		Entity newE = new Entity(idKey);
+		newE.setProperty("nextId", 0);
+		datastore.put(newE);
+		tx.commit();
 		
 	}
 	
