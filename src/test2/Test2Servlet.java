@@ -120,9 +120,15 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "turnFinished":{
 				try{
-				boolean isStarted = (boolean) syncCache.get("isStarted");
-				if(!isStarted)
-					break;
+					
+					Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
+					Entity a = datastore.get(idKey);
+					boolean isStarted = (boolean) a.getProperty("isStarted");
+					
+					if (!isStarted)
+						break;
+					
+				
 				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
 				Long oldPlayerScore = tf.getCurrentScore();
 				Long oldPlayerID = tf.getPlayerID();
@@ -190,7 +196,15 @@ public class Test2Servlet extends HttpServlet {
 				}
 			}
 			case "startGame":{
-				syncCache.put("isStarted", true);
+				
+				Transaction tx2 = datastore.beginTransaction();
+				Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
+				Entity a = new Entity(idKey);
+				a.setProperty("isStarted", true);
+				datastore.put(a);
+				tx2.commit();
+				
+				
 				deletePlayerScores(resp);
 				Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", gameKey);
@@ -231,7 +245,13 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "endGame":{
-				syncCache.put("isStarted", false);
+				Transaction tx2 = datastore.beginTransaction();
+				Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
+				Entity a = new Entity(idKey);
+				a.setProperty("isStarted", false);
+				datastore.delete(idKey);
+				datastore.put(a);
+				tx2.commit();
 				resp.getWriter().println("{'return':'ended game'}");
 				break;
 			}
@@ -301,10 +321,11 @@ public class Test2Servlet extends HttpServlet {
 				break;
 			}
 			case "init":{
+				deleteStatus(resp);
 				deleteGames(resp);
 				deletePlayers(resp);
 				deletePlayerScores(resp);
-				deleteIdGen();
+				deleteIdGen(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
@@ -313,7 +334,18 @@ public class Test2Servlet extends HttpServlet {
 	//end of method
 	}
 	
-	public void deleteIdGen() {
+	public void deleteStatus(HttpServletResponse resp) throws IOException {
+		Transaction tx = datastore.beginTransaction();
+		Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
+		datastore.delete(idKey);
+		Entity newE = new Entity(idKey);
+		newE.setProperty("isStarted", false);
+		datastore.put(newE);
+		tx.commit();
+		resp.getWriter().println("Reset isStarted to false");
+	}
+	
+	public void deleteIdGen(HttpServletResponse resp) throws IOException {
 		Transaction tx = datastore.beginTransaction();
 		Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
 		datastore.delete(idKey);
@@ -321,6 +353,7 @@ public class Test2Servlet extends HttpServlet {
 		newE.setProperty("nextId", 0);
 		datastore.put(newE);
 		tx.commit();
+		resp.getWriter().println("Restarted id counter");
 		
 	}
 	
