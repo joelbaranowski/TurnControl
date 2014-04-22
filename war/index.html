@@ -1,27 +1,137 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<!-- The HTML 4.01 Transitional DOCTYPE declaration-->
-<!-- above set at the top of the file will set     -->
-<!-- the browser's rendering engine into           -->
-<!-- "Quirks Mode". Replacing this declaration     -->
-<!-- with a "Standards Mode" doctype is supported, -->
-<!-- but may lead to some differences in layout.   -->
+<!DOCTYPE html >
 
 <html>
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Hello App Engine</title>
-  </head>
+<head>
+    <title>TurnControl Console</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>    
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom styles for this template -->
+    <link href="signin.css" rel="stylesheet">
 
-  <body>
-    <h1>Hello App Engine!</h1>
-	
-    <table>
-      <tr>
-        <td colspan="2" style="font-weight:bold;">Available Servlets:</td>        
-      </tr>
-      <tr>
-        <td><a href="test2">Test2</a></td>
-      </tr>
-    </table>
-  </body>
+</head>
+
+<body>
+
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="selectLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="selectLabel">Select a SubGame</h4>
+                </div>
+                <div class="modal-body" id="model-body-content">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Select</button>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="error" tabindex="-1" role="dialog" aria-labelledby="selectLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="selectLabel">Encountered an error... </h4>
+                </div>
+                <div class="modal-body" id="model-body-errorcontent">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="container">
+
+      <form class="form-signin" role="form" action="javascript:joinSuperGameHandler()">
+        <h2 class="form-signin-heading">Join Super Game</h2>
+        <input type="text" class="form-control" id = "playerName" placeholder="Player Name" required autofocus>
+        <input type="text" class="form-control" id = "aiServerURL" placeholder="AIServer">
+        <label class="checkbox">
+          <input type="checkbox" id = "aicheckbox" onchange="javascript:onCheckBoxChange()"> Play using AI
+        </label>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Join</button>
+      </form>
+
+    </div> <!-- /container -->
+</body>
+
+
+<script type="text/javascript">
+
+        var playAsAI = false;
+        function onCheckBoxChange() {
+            playAsAI = !playAsAI;
+            console.log("onCheckBoxChange "+playAsAI);
+        }
+
+        function joinSuperGameHandler() {
+
+              var playerName = document.getElementById('playerName').value;
+              var playerServerURL = document.getElementById('aiServerURL').value;
+              //                'url' : '1-dot-utopian-hearth-532.appspot.com/test2',
+
+              var request = {
+                    'playerName' : playerName,
+                        'isAI' : playAsAI,
+                        'gameURL' : playerServerURL
+              };
+
+              $.post('http://localhost:8888/joinGame', JSON.stringify(request),
+                    function(data) {
+                        data = JSON.parse(data);
+                        console.log(data);
+                        if (data && data.status == "ok") {
+
+                            var getGameRequest = {};
+
+                            $.post('http://localhost:8888/getGameList', JSON.stringify(getGameRequest), function(games) {
+                                games = JSON.parse(games);
+                                if (games) {
+                                    var content = '<div class="after-header">';
+                                    content += '<ul class="list-group">';
+                                    for (var i = 0; i < games.length; i++) {
+                                        content += '<li class="list-group-item"><strong>' + games[i] + '</li>';
+                                    }
+                                    content += '</ul>';
+                                    content += '</div>';
+
+                                    $('#model-body-content').html(content);
+                                    $('#myModal').modal('show');
+                                    console.log("data  "+data);
+                                } else {
+                                    var content = "Failed to fetch the list of subgames"
+                                    $('#model-body-errorcontent').html(content);
+                                    $('#error').modal('show');
+                                }
+                            });
+                        } else {
+                            var content;
+                            if (data.msg)
+                                content = data.msg;
+                            else 
+                                content = "failed to add player";
+
+                            $('#model-body-errorcontent').html(content);
+                            $('#error').modal('show');
+                        }
+                    }
+              );
+        }
+</script>
 </html>
