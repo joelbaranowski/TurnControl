@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+
+
+    <title>Signin Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="signin.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+   <script type="text/javascript">
+
+   		var playAsAI = false;
+		function onCheckBoxChange() {
+			playAsAI = !playAsAI;
+			console.log("onCheckBoxChange "+playAsAI);
+		}
+
+		function handler() {
+
+			  var playerName = document.getElementById('playerName').value;
+			  var playerServerURL = document.getElementById('aiServerURL').value;
+			  //			    'url' : '1-dot-utopian-hearth-532.appspot.com/test2',
+
+			  var request = {
+				  	'playerName' : playerName,
+						'isAI' : playAsAI,
+						'gameURL' : playerServerURL
+			  };
+			  
+			  $.post('http://localhost:8888/JoinGameServlet', JSON.stringify(request),
+				  	function(data) {
+				  		console.log("data  "+data);
+				  	}
+			  );
+		}
+
+    </script>
+
+
+    <div class="container">
+
+      <form class="form-signin" role="form" action="javascript:handler()">
+        <h2 class="form-signin-heading">Join Super Game</h2>
+        <input type="text" class="form-control" id = "playerName" placeholder="Player Name" required autofocus>
+        <input type="text" class="form-control" id = "aiServerURL" placeholder="AIServer">
+        <label class="checkbox">
+          <input type="checkbox" id = "aicheckbox" onchange="javascript:onCheckBoxChange()"> Play using AI
+        </label>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Join</button>
+      </form>
+
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+  </body>
+</html>
