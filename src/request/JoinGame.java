@@ -4,16 +4,18 @@ import java.io.Serializable;
 
 public class JoinGame implements Serializable {
 
-	private String playerName;
-	private String gameURL;
+	public String playerName;
+	public String gameURL;
+	public boolean isAI;
 	
 	public JoinGame(){
 		
 	}
 	
-	public JoinGame(String playerName, String gameURL){
+	public JoinGame(String playerName, boolean isAI, String gameURL){
 		this.setPlayerName(playerName);
 		this.gameURL = gameURL;
+		this.isAI = isAI;
 	}
 
 	

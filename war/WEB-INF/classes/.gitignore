@@ -1,3 +1,6 @@
+/META-INF
+/log4j.properties
 /request
 /test2
-/.DS_Store
+/servlets
+/Json
