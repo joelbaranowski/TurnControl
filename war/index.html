@@ -73,7 +73,7 @@
 
 
 <script type="text/javascript">
-
+		var homeURL = 'http://1-dot-striped-buckeye-555.appspot.com';
         var playAsAI = false;
         var playerName;
         var playerServerURL;
@@ -83,22 +83,35 @@
         }
 
         function onSubGameURLClicked(gameURL) {
+ 
+              
             console.log("onSubGameURLClicked: "+ gameURL);
-
-
+       
             var request = {
-                'playerName' : playerName,
-                'isAI' : playAsAI,
-                'gameURL' : playerServerURL
-            };   
+                    'playerName' : playerName,
+                    'gameURL' : gameURL
+            };
+             
+            $.post(homeURL + '/updateGameURL', JSON.stringify(request),
+                  function(data) {
+                  		if (data == null) return;
+                  		var status = JSON.parse(data);
+                  		if (status.status == "ok") {
+                        	var request = {
+                				'playerName' : playerName,
+                				'isAI' : playAsAI,
+                				'gameURL' : gameURL
+            				};   
 
-            $.post(gameURL+'/joinSubGame', JSON.stringify(request),
-                    function(data) {
-                        window.location.replace(data);
-                    }
-            );
+            				$.post(gameURL+'/joinSubGame', JSON.stringify(request),
+                    			function(data) {
+                        			window.location.replace(data);
+                    			}
+            				);
+                  		}  
+             });
         }
-
+        
         function joinSuperGameHandler() {
 
               playerName = document.getElementById('playerName').value;
@@ -108,10 +121,11 @@
               var request = {
                     'playerName' : playerName,
                         'isAI' : playAsAI,
-                        'gameURL' : playerServerURL
+                        'AIURL' : playerServerURL
               };
 
-              $.post('http://1-dot-striped-buckeye-555.appspot.com/joinGame', JSON.stringify(request),
+			// change me
+              $.post(homeURL+'/joinGame', JSON.stringify(request),
                     function(data) {
                         console.log("joinGame resp: "+ data);
                         data = JSON.parse(data);
@@ -120,7 +134,7 @@
 
                             var getGameRequest = {};
 
-                            $.post('http://1-dot-striped-buckeye-555.appspot.com/getGameList', JSON.stringify(getGameRequest), function(games) {
+                            $.post('http://localhost:8887/getGameList', JSON.stringify(getGameRequest), function(games) {
                                 games = JSON.parse(games);
                                 if (games) {
                                     var content = '<div class="after-header">';
