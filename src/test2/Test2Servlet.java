@@ -72,38 +72,21 @@ public class Test2Servlet extends HttpServlet {
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
 
 				Transaction tx = datastore.beginTransaction();
+				Long maxID = -1L;
 				try {
-			
-
-				Transaction tx2 = datastore.beginTransaction();
-				//Get the playerId to use for this new player from the datastore
-				//And update the nextId field for future access
-				Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
-				long newId;
-				Entity a = datastore.get(idKey);
-				newId = (long) a.getProperty("nextId");
-				a.setProperty("nextId",newId+1);
-				datastore.delete(idKey);
-				datastore.put(a);
-				tx2.commit();
-			
-				
-				//This checks if an existing player has the same name as the
-				//new player from the request, and if so deletes the existing entry
-				//Remove if you want multiple players with the same name
 				Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", playerKey);
 				List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-				for(Entity e : playerList)
-					if(((String)e.getProperty("playerName")).equals(jg.getPlayerName())){
-						resp.getWriter().println("found match");
-						datastore.delete(e.getKey());
-						break;
+				for(Entity e : playerList){
+					Long currID = (Long)e.getProperty("playerID");
+					if(currID > maxID){
+						maxID = currID;
 					}
+				}
 				
 				
 				Entity newPlayer = new Entity("JoinGame", playerKey);
-				newPlayer.setProperty("playerID", newId);
+				newPlayer.setProperty("playerID", maxID+1);
 				newPlayer.setProperty("gameURL", jg.getGameURL());
 				newPlayer.setProperty("playerName", jg.getPlayerName());
 				datastore.put(newPlayer);
@@ -123,7 +106,7 @@ public class Test2Servlet extends HttpServlet {
 					
 					Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
 					Entity a = datastore.get(idKey);
-					boolean isStarted = (boolean) a.getProperty("isStarted");
+					Boolean isStarted = (Boolean) a.getProperty("isStarted");
 					
 					if (!isStarted)
 						break;
@@ -132,6 +115,8 @@ public class Test2Servlet extends HttpServlet {
 				TakeTurn tf = (TakeTurn) g.fromJson(data, TakeTurn.class);
 				Long oldPlayerScore = tf.getCurrentScore();
 				Long oldPlayerID = tf.getPlayerID();
+				
+				resp.getWriter().println("id: " + oldPlayerID + " | score: " + oldPlayerScore);
 				
 				//update the taketurn value
 				Transaction tx = datastore.beginTransaction();
@@ -164,14 +149,13 @@ public class Test2Servlet extends HttpServlet {
 				for (Entity e : gameList) {
 					playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
 				}
+				
 				int numberOfPlayers = playerToGame.size();
-				resp.getWriter().println("#players: " + numberOfPlayers + " | newplayer: " + newPlayerID);
 				if(newPlayerID >= numberOfPlayers)
 					newPlayerID = 0L;
+				
 				String newPlayerGameUrl = playerToGame.get(newPlayerID);
-				for(Long key : playerToGame.keySet())
-					resp.getWriter().println("key: " + key + " | value: " + playerToGame.get(key));
-				resp.getWriter().println("new player: " + newPlayerID + " | value: " + playerToGame.get(newPlayerID));
+				
 				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
 				query = new Query("TakeTurn", playerScoreKey);
 				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
@@ -183,7 +167,7 @@ public class Test2Servlet extends HttpServlet {
 				
 				TakeTurn tt = new TakeTurn(newPlayerID, newPlayerScore);
 				String gtj = g.toJson(tt);
-				
+				resp.getWriter().println("gtj: " + gtj);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
 				TakeTurnPost ttp = new TakeTurnPost();
 				ttp.run(mew, newPlayerGameUrl);
@@ -325,7 +309,6 @@ public class Test2Servlet extends HttpServlet {
 				deleteGames(resp);
 				deletePlayers(resp);
 				deletePlayerScores(resp);
-				deleteIdGen(resp);
 				resp.getWriter().println("{'result':'init'}");
 				break;
 			}
@@ -345,17 +328,6 @@ public class Test2Servlet extends HttpServlet {
 		resp.getWriter().println("Reset isStarted to false");
 	}
 	
-	public void deleteIdGen(HttpServletResponse resp) throws IOException {
-		Transaction tx = datastore.beginTransaction();
-		Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
-		datastore.delete(idKey);
-		Entity newE = new Entity(idKey);
-		newE.setProperty("nextId", 0);
-		datastore.put(newE);
-		tx.commit();
-		resp.getWriter().println("Restarted id counter");
-		
-	}
 	
 	public void deletePlayers( HttpServletResponse resp) throws IOException{
 		Transaction tx = datastore.beginTransaction();
