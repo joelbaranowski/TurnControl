@@ -75,15 +75,34 @@
 <script type="text/javascript">
 
         var playAsAI = false;
+        var playerName;
+        var playerServerURL;
         function onCheckBoxChange() {
             playAsAI = !playAsAI;
             console.log("onCheckBoxChange "+playAsAI);
         }
 
+        function onSubGameURLClicked(gameURL) {
+            console.log("onSubGameURLClicked: "+ gameURL);
+
+
+            var request = {
+                'playerName' : playerName,
+                'isAI' : playAsAI,
+                'gameURL' : playerServerURL
+            };   
+
+            $.post(gameURL+'/joinSubGame', JSON.stringify(request),
+                    function(data) {
+                        window.location.replace(data);
+                    }
+            );
+        }
+
         function joinSuperGameHandler() {
 
-              var playerName = document.getElementById('playerName').value;
-              var playerServerURL = document.getElementById('aiServerURL').value;
+              playerName = document.getElementById('playerName').value;
+              playerServerURL = document.getElementById('aiServerURL').value;
               //                'url' : '1-dot-utopian-hearth-532.appspot.com/test2',
 
               var request = {
@@ -92,15 +111,16 @@
                         'gameURL' : playerServerURL
               };
 
-              $.post('http://localhost:8888/joinGame', JSON.stringify(request),
+              $.post('http://1-dot-striped-buckeye-555.appspot.com/joinGame', JSON.stringify(request),
                     function(data) {
+                        console.log("joinGame resp: "+ data);
                         data = JSON.parse(data);
                         console.log(data);
                         if (data && data.status == "ok") {
 
                             var getGameRequest = {};
 
-                            $.post('http://localhost:8888/getGameList', JSON.stringify(getGameRequest), function(games) {
+                            $.post('http://1-dot-striped-buckeye-555.appspot.com/getGameList', JSON.stringify(getGameRequest), function(games) {
                                 games = JSON.parse(games);
                                 if (games) {
                                     var content = '<div class="after-header">';
@@ -110,7 +130,13 @@
                                     }
                                     content += '</ul>';
                                     content += '</div>';
+                                    content += '<script>';
+                                    content += "\$( document )\.ready(function() {$(\'.list-group-item\').click(function() {onSubGameURLClicked($( this ).text());});});";
+                                    content += '<\/script>';
 
+                                    $('.list-group-item').click(function() {
+                                        console.log($( this ).value);
+                                    });
                                     $('#model-body-content').html(content);
                                     $('#myModal').modal('show');
                                     console.log("data  "+data);
