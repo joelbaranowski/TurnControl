@@ -4,35 +4,51 @@ xmlns="http://java.sun.com/xml/ns/javaee"
 xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
 xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
 http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
-
+	
 	<servlet>
-		<servlet-name>JoinGameServlet</servlet-name>
-		<servlet-class>servlets.JoinGameServlet</servlet-class>
+		<servlet-name>DeleteGameListServlet</servlet-name>
+		<servlet-class>servlets.DeleteGameListServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>JoinGameServlet</servlet-name>
-		<url-pattern>/joinGame</url-pattern>
+		<servlet-name>DeleteGameListServlet</servlet-name>
+		<url-pattern>/deleteGameList</url-pattern>
 	</servlet-mapping>
 	
 	<servlet>
-		<servlet-name>UpdateGameURLServlet</servlet-name>
-		<servlet-class>servlets.UpdateGameURLServlet</servlet-class>
+		<servlet-name>DeletePlayerScoresServlet</servlet-name>
+		<servlet-class>servlets.DeletePlayerScoresServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>UpdateGameURLServlet</servlet-name>
-		<url-pattern>/updateGameURL</url-pattern>
+		<servlet-name>DeletePlayerScoresServlet</servlet-name>
+		<url-pattern>/deletePlayerScores</url-pattern>
 	</servlet-mapping>
-	
 	
 	<servlet>
-		<servlet-name>RegisterGameServlet</servlet-name>
-		<servlet-class>servlets.RegisterGameServlet</servlet-class>
+		<servlet-name>DeletePlayersServlet</servlet-name>
+		<servlet-class>servlets.DeletePlayersServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>RegisterGameServlet</servlet-name>
-		<url-pattern>/registerGame</url-pattern>
+		<servlet-name>DeletePlayersServlet</servlet-name>
+		<url-pattern>/deletePlayers</url-pattern>
 	</servlet-mapping>
 	
+	<servlet>
+		<servlet-name>DeleteStatusServlet</servlet-name>
+		<servlet-class>servlets.DeleteStatusServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>DeleteStatusServlet</servlet-name>
+		<url-pattern>/deleteStatus</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>EndGameServlet</servlet-name>
+		<servlet-class>servlets.EndGameServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>EndGameServlet</servlet-name>
+		<url-pattern>/endGame</url-pattern>
+	</servlet-mapping>
 	
 	<servlet>
 		<servlet-name>GetGameListServlet</servlet-name>
@@ -43,7 +59,68 @@ http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
 		<url-pattern>/getGameList</url-pattern>
 	</servlet-mapping>
 	
+	<servlet>
+		<servlet-name>GetPlayerListServlet</servlet-name>
+		<servlet-class>servlets.GetPlayerListServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GetPlayerListServlet</servlet-name>
+		<url-pattern>/getPlayerList</url-pattern>
+	</servlet-mapping>
 	
+	<servlet>
+		<servlet-name>InitServlet</servlet-name>
+		<servlet-class>servlets.InitServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>InitServlet</servlet-name>
+		<url-pattern>/init</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>JoinGameServlet</servlet-name>
+		<servlet-class>servlets.JoinGameServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>JoinGameServlet</servlet-name>
+		<url-pattern>/joinGame</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>RegisterGameServlet</servlet-name>
+		<servlet-class>servlets.RegisterGameServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>RegisterGameServlet</servlet-name>
+		<url-pattern>/registerGame</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>StartGameServlet</servlet-name>
+		<servlet-class>servlets.StartGameServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>StartGameServlet</servlet-name>
+		<url-pattern>/startGame</url-pattern>
+	</servlet-mapping>
+			
+	<servlet>
+		<servlet-name>TurnFinishedServlet</servlet-name>
+		<servlet-class>servlets.TurnFinishedServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>TurnFinishedServlet</servlet-name>
+		<url-pattern>/turnFinished</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>UpdateGameURLServlet</servlet-name>
+		<servlet-class>servlets.UpdateGameURLServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>UpdateGameURLServlet</servlet-name>
+		<url-pattern>/updateGameURL</url-pattern>
+	</servlet-mapping>
 	
 	<servlet>
 		<servlet-name>Test2</servlet-name>

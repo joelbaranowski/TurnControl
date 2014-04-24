@@ -2,9 +2,7 @@ package servlets;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -19,7 +17,7 @@ import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Query;
 import com.google.gson.Gson;
 
-public class GetGameListServlet extends HttpServlet {
+public class GetPlayerListServlet extends HttpServlet {
 
 	private static final long serialVersionUID = 4564250159863375259L;
 	DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
@@ -33,14 +31,14 @@ public class GetGameListServlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
-		Query query = new Query("JoinGame", gameKey);
+		Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+		Query query = new Query("RegisterGame", gameKey);
 		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		Map<Long, String> playerToGame = new HashMap<Long, String>();
+		List<String> ret = new ArrayList<String>();
 		for (Entity e : gameList) {
-			playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("playerName") + "  at   " + (String)e.getProperty("gameURL"));
+			ret.add((String) e.getProperty("url"));
 		}
-		resp.getWriter().println(gson.toJson(playerToGame));
+		resp.getWriter().println(gson);
 	}
 
 }

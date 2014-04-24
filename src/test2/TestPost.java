@@ -2,10 +2,10 @@ package test2;
 
 import javax.servlet.http.HttpServletResponse;
 
-import request.JoinGame;
 import request.MakePost;
 import request.MethodWrapper;
-import request.TakeTurn;
+import Json.JoinGame;
+import Json.TakeTurn;
 
 import com.google.gson.Gson;
 
