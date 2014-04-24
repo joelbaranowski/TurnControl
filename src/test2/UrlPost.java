@@ -20,11 +20,25 @@ public class UrlPost {
 	public String run(MethodWrapper mw, String url){
 		MakePost mp = new MakePost(url);
 		try {
-			return mp.execute(mw);
+			return mp.execute(g.toJson(mw).toString());
 	    } 
 		catch (Exception exception) {
 			exception.printStackTrace();
 	    }
 		return "no return";
+	}
+	
+	
+	public boolean sendPost(String data, String url) {
+		MakePost mp = new MakePost(url);
+		try {
+			if (mp.execute(data) != null) {
+				return true;
+			}
+	    } 
+		catch (Exception exception) {
+			exception.printStackTrace();
+	    }	
+		return false;
 	}
 }

@@ -3,6 +3,8 @@ package servlets;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,82 +40,96 @@ public class TurnFinishedServlet extends HttpServlet {
 
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		System.out.println("joining a game");
+		System.out.println("TurnFinishedServlet");
 		// Parse request 
 		BufferedReader br = new BufferedReader(new InputStreamReader(req.getInputStream()));    
 		TakeTurn tf = gson.fromJson(br, TakeTurn.class);
 		doModPost(tf, req, resp);
 	}
-	
+
 	public void doModPost(TakeTurn tf, HttpServletRequest req, HttpServletResponse resp) throws IOException{
 		try{
-			
+
 			Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
 			Entity a = datastore.get(idKey);
 			Boolean isStarted = (Boolean) a.getProperty("isStarted");
-			
+
 			if (!isStarted)
 				return;
+
 			
+			Long oldPlayerScore = tf.getCurrentScore();
+			Long oldPlayerID = tf.getPlayerID();
+
+			resp.getWriter().println("id: " + oldPlayerID + " | score: " + oldPlayerScore);
+
+			//update the taketurn value
+			Transaction tx = datastore.beginTransaction();
+			try {
+				Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+				Query query = new Query("TakeTurn", playerScoreKey);
+				Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, oldPlayerID);
+				query.setFilter(f);
+				List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+				for(Entity e : playerScoreList)
+					datastore.delete(e.getKey());
+				Entity newPlayerScore = new Entity("TakeTurn", playerScoreKey);
+				newPlayerScore.setProperty("playerID", oldPlayerID);
+				newPlayerScore.setProperty("currentScore", oldPlayerScore);
+				datastore.put(newPlayerScore);
+				tx.commit();
+			}
+			catch(Exception e){
+				if(tx.isActive())
+					tx.rollback();
+				ExceptionStringify es = new ExceptionStringify(e);
+				resp.getWriter().println(es.run());
+			}
+
 		
-		Long oldPlayerScore = tf.getCurrentScore();
-		Long oldPlayerID = tf.getPlayerID();
-		
-		resp.getWriter().println("id: " + oldPlayerID + " | score: " + oldPlayerScore);
-		
-		//update the taketurn value
-		Transaction tx = datastore.beginTransaction();
-		try {
-		Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
-		Query query = new Query("TakeTurn", playerScoreKey);
-		Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, oldPlayerID);
-		query.setFilter(f);
-		List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		for(Entity e : playerScoreList)
-			datastore.delete(e.getKey());
-		Entity newPlayerScore = new Entity("TakeTurn", playerScoreKey);
-		newPlayerScore.setProperty("playerID", oldPlayerID);
-		newPlayerScore.setProperty("currentScore", oldPlayerScore);
-		datastore.put(newPlayerScore);
-		tx.commit();
-		}
-		catch(Exception e){
-			if(tx.isActive())
-				tx.rollback();
-			ExceptionStringify es = new ExceptionStringify(e);
-			resp.getWriter().println(es.run());
-		}
-		
-		Long newPlayerID = oldPlayerID + 1;
-		Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
-		Query query = new Query("JoinGame", gameKey);
-		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		Map<Long, String> playerToGame = new HashMap<Long, String>();
-		for (Entity e : gameList) {
-			playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
-		}
-		
-		int numberOfPlayers = playerToGame.size();
-		if(newPlayerID >= numberOfPlayers)
-			newPlayerID = 0L;
-		
-		String newPlayerGameUrl = playerToGame.get(newPlayerID);
-		
-		Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
-		query = new Query("TakeTurn", playerScoreKey);
-		Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
-		query.setFilter(f);
-		List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		Long newPlayerScore = -1L;
-		for(Entity e : playerScoreList)
-			newPlayerScore = (Long)e.getProperty("currentScore");
-		
-		TakeTurn tt = new TakeTurn(newPlayerID, newPlayerScore);
-		String gtj = gson.toJson(tt);
-		resp.getWriter().println("gtj: " + gtj);
-		MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-		UrlPost ttp = new UrlPost();
-		ttp.run(mew, newPlayerGameUrl);
+			Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+			Query query = new Query("JoinGame", gameKey);
+			List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			Map<Long, String> playerToGame = new HashMap<Long, String>();
+			
+			ArrayList<Long> playerIDs = new ArrayList<Long>();
+			for (Entity e : gameList) {
+				playerIDs.add((Long)e.getProperty("playerID"));
+				playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
+			}
+
+			Collections.sort(playerIDs);
+			
+			int current_index = playerIDs.indexOf(oldPlayerID);
+			Long newPlayerID;
+			if (current_index == playerIDs.size() - 1) {
+				newPlayerID = playerIDs.get(0);
+			} else {
+				newPlayerID = playerIDs.get(current_index+1);
+			}
+
+			String newPlayerGameUrl = playerToGame.get(newPlayerID);
+
+			Key playerScoreKey = KeyFactory.createKey("TakeTurnKey", "PlayerScoreList");
+			query = new Query("TakeTurn", playerScoreKey);
+			Filter f = new FilterPredicate("playerID", Query.FilterOperator.EQUAL, newPlayerID);
+			query.setFilter(f);
+			List<Entity> playerScoreList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			Long newPlayerScore = -1L;
+			for(Entity e : playerScoreList)
+				newPlayerScore = (Long)e.getProperty("currentScore");
+
+//			TakeTurn tt = new TakeTurn(newPlayerID, newPlayerScore);
+//			String gtj = gson.toJson(tt);
+//			resp.getWriter().println("gtj: " + gtj);
+//			MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
+//			UrlPost ttp = new UrlPost();
+//			ttp.run(mew, newPlayerGameUrl);
+//			
+			TakeTurn takeTurnPacket = new TakeTurn(newPlayerID, newPlayerScore);
+			UrlPost postUtil = new UrlPost();
+			postUtil.sendPost(gson.toJson(takeTurnPacket,TakeTurn.class), newPlayerGameUrl+"/takeTurn");
+			System.out.println("sending take turn packet");
 		}
 		catch(Exception e){
 			ExceptionStringify es = new ExceptionStringify(e);

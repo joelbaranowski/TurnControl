@@ -44,11 +44,17 @@ public class StartGameServlet extends HttpServlet {
 		Query query = new Query("JoinGame", gameKey);
 		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
 		Map<Long, String> playerToGame = new HashMap<Long, String>();
+		
+		Long minPlayerID = Long.MAX_VALUE;
 		for (Entity e : gameList) {
-			playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("gameURL"));
+			Long playerID = (Long) e.getProperty("playerID");
+			if (playerID < minPlayerID) {
+				minPlayerID = playerID;
+			}
+			playerToGame.put(playerID, (String)e.getProperty("gameURL"));
 		}
 		
-		String player0GameUrl = playerToGame.get(0L);
+		String player0GameUrl = playerToGame.get(minPlayerID);
 		
 		for(Long currentPlayer : playerToGame.keySet()){
 			Transaction tx = datastore.beginTransaction();
@@ -70,11 +76,10 @@ public class StartGameServlet extends HttpServlet {
 			}
 		}
 		
-		TakeTurn tt = new TakeTurn(0L, 0L);
-		String gtj = gson.toJson(tt);
-		MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-		UrlPost ttp = new UrlPost();
-		ttp.run(mew, player0GameUrl);
+		TakeTurn takeTurnPacket = new TakeTurn(minPlayerID, 0L);
+		UrlPost postUtil = new UrlPost();
+		postUtil.sendPost(gson.toJson(takeTurnPacket,TakeTurn.class), player0GameUrl+"/takeTurn");
+		System.out.println("sending take turn packet");
 		resp.getWriter().println("{'return':'player number: " + playerToGame.size() + ", started game:" + player0GameUrl + "'}");
 	}
 

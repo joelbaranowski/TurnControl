@@ -74,9 +74,11 @@
 
 <script type="text/javascript">
 		var homeURL = 'http://1-dot-striped-buckeye-555.appspot.com';
+        //var homeURL = 'http://localhost:8887';
         var playAsAI = false;
         var playerName;
         var playerServerURL;
+        var playerID = "-1";
         function onCheckBoxChange() {
             playAsAI = !playAsAI;
             console.log("onCheckBoxChange "+playAsAI);
@@ -87,6 +89,9 @@
               
             console.log("onSubGameURLClicked: "+ gameURL);
        
+       		console.log("playerId "+playerID);
+       		playerID = parseInt(playerID);
+       		debugger;
             var request = {
                     'playerName' : playerName,
                     'gameURL' : gameURL
@@ -100,6 +105,7 @@
                         	var request = {
                 				'playerName' : playerName,
                 				'isAI' : playAsAI,
+                				'playerID' : playerID,
                 				'gameURL' : gameURL
             				};   
 
@@ -130,8 +136,10 @@
                         console.log("joinGame resp: "+ data);
                         data = JSON.parse(data);
                         console.log(data);
-                        if (data && data.status == "ok") {
 
+                        if (data && data.status == "ok") {
+                        	playerID = data.msg;
+                        	
                             var getGameRequest = {};
 
                             $.post(homeURL + '/getGameList', JSON.stringify(getGameRequest), function(games) {

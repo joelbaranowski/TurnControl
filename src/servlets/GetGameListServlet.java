@@ -33,14 +33,14 @@ public class GetGameListServlet extends HttpServlet {
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		Key gameKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
-		Query query = new Query("JoinGame", gameKey);
+		Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+		Query query = new Query("RegisterGame", gameKey);
 		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		Map<Long, String> playerToGame = new HashMap<Long, String>();
+		List<String> ret = new ArrayList<String>();
 		for (Entity e : gameList) {
-			playerToGame.put((Long) e.getProperty("playerID"), (String)e.getProperty("playerName") + "  at   " + (String)e.getProperty("gameURL"));
+			ret.add((String) e.getProperty("url"));
 		}
-		resp.getWriter().println(gson.toJson(playerToGame));
+		resp.getWriter().println(gson.toJson(ret));
 	}
 
 }

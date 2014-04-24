@@ -18,13 +18,13 @@ public class TestPost {
 	Gson g = new Gson();
 	
 	public String run(MethodWrapper mw){
-		MakePost mp = new MakePost("http://1-dot-utopian-hearth-533.appspot.com/test");
-		try {
-			return mp.execute(mw);
-	    } 
-		catch (Exception exception) {
-			exception.printStackTrace();
-	    }
+//		MakePost mp = new MakePost("http://1-dot-utopian-hearth-533.appspot.com/test");
+//		try {
+//			return mp.execute(mw);
+//	    } 
+//		catch (Exception exception) {
+//			exception.printStackTrace();
+//	    }
 		return "no return";
 	}
 }

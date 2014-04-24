@@ -84,7 +84,7 @@ public class Test2Servlet extends HttpServlet {
 			case "joinGame":{
 				JoinGameServlet jgs = new JoinGameServlet();
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
-				jgs.doModPost(jg, req, resp);
+				//jgs.doModPost(jg, req, resp);
 				break;
 			}
 			case "turnFinished":{

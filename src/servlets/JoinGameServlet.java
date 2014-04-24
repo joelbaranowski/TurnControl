@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import Json.JoinGame;
 import Json.PlayerJoined;
+import Json.StatusResponse;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -23,8 +24,6 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.gson.Gson;
 
 import request.ExceptionStringify;
-import request.MethodWrapper;
-import test2.UrlPost;
 
 public class JoinGameServlet extends HttpServlet {
 	private static final long serialVersionUID = 893725263070180021L;
@@ -33,37 +32,61 @@ public class JoinGameServlet extends HttpServlet {
 
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
+
 		System.out.println("joining a game");
 		// Parse request 
 		BufferedReader br = new BufferedReader(new InputStreamReader(req.getInputStream()));    
-		JoinGame jg = gson.fromJson(br, JoinGame.class);
-		doModPost(jg, req, resp);
-	}
-	
-	public void doModPost(JoinGame jg, HttpServletRequest req, HttpServletResponse resp) throws IOException{
+		JoinGame request = gson.fromJson(br, JoinGame.class);
+
+
 		Transaction tx = datastore.beginTransaction();
-		Long maxID = -1L;
-		Long newID = -1L;
-		
 		try {
-		Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
-		Query query = new Query("JoinGame", playerKey);
-		List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		for(Entity e : playerList){
-			Long currID = (Long)e.getProperty("playerID");
-			if(currID > maxID){
-				maxID = currID;
+
+
+			Transaction tx2 = datastore.beginTransaction();
+			//Get the playerId to use for this new player from the datastore
+			//And update the nextId field for future access
+			Key idKey = KeyFactory.createKey("idMakerKey", "PlayerIdGenerator");
+			long newId;
+			Entity a = datastore.get(idKey);
+			newId = (long) a.getProperty("nextId");
+			a.setProperty("nextId",newId+1);
+			datastore.delete(idKey);
+			datastore.put(a);
+			tx2.commit();
+
+
+			//This checks if an existing player has the same name as the
+			//new player from the request, and if so deletes the existing entry
+			//Remove if you want multiple players with the same name
+			Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
+			Query query = new Query("JoinGame", playerKey);
+			boolean foundMatch = false;
+
+			List<Entity> playerList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			for(Entity e : playerList)
+				if(((String)e.getProperty("playerName")).equals(request.playerName)){
+					foundMatch = true;
+					StatusResponse reponse = new StatusResponse("fail", "already found a match");
+					resp.getWriter().println(reponse.toJson());
+					datastore.delete(e.getKey());
+					break;
+				}
+
+
+			Entity newPlayer = new Entity("JoinGame", playerKey);
+			newPlayer.setProperty("playerID", newId);
+			newPlayer.setProperty("gameURL", request.gameURL);
+			newPlayer.setProperty("playerName", request.playerName);
+			newPlayer.setProperty("isAI", request.isAI);
+			datastore.put(newPlayer);
+			tx.commit();
+
+			if (!foundMatch) {
+				StatusResponse reponse = new StatusResponse("ok", newId+"");
+				resp.getWriter().println(reponse.toJson());
 			}
-		}
-		
-		
-		Entity newPlayer = new Entity("JoinGame", playerKey);
-		newID = maxID + 1;
-		newPlayer.setProperty("playerID", newID);
-		newPlayer.setProperty("gameURL", jg.getGameURL());
-		newPlayer.setProperty("playerName", jg.getPlayerName());
-		datastore.put(newPlayer);
-		tx.commit();
+
 		}
 		catch(Exception e){
 			if(tx.isActive())
@@ -71,10 +94,6 @@ public class JoinGameServlet extends HttpServlet {
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().print(es.run());
 		}
-		PlayerJoined pj = new PlayerJoined(newID, jg.getPlayerName());
-		MethodWrapper mew = new MethodWrapper("playerJoined", gson.toJson(pj));
-		UrlPost ttp = new UrlPost();
-		ttp.run(mew, jg.gameURL);
-		resp.getWriter().println("player joined");
-		}
+
+	}
 }
