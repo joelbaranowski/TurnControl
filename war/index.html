@@ -134,7 +134,7 @@
 
                             var getGameRequest = {};
 
-                            $.post('http://localhost:8887/getGameList', JSON.stringify(getGameRequest), function(games) {
+                            $.post(homeURL + '/getGameList', JSON.stringify(getGameRequest), function(games) {
                                 games = JSON.parse(games);
                                 if (games) {
                                     var content = '<div class="after-header">';
