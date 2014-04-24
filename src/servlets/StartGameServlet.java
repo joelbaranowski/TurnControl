@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import request.ExceptionStringify;
 import request.MethodWrapper;
 import request.TakeTurn;
-import test2.TakeTurnPost;
+import test2.UrlPost;
 
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -76,7 +76,7 @@ public class StartGameServlet extends HttpServlet {
 		TakeTurn tt = new TakeTurn(0L, 0L);
 		String gtj = gson.toJson(tt);
 		MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-		TakeTurnPost ttp = new TakeTurnPost();
+		UrlPost ttp = new UrlPost();
 		ttp.run(mew, player0GameUrl+"/takeTurn");
 		System.out.println("GameURL: "+ player0GameUrl+"/takeTurn");
 		resp.getWriter().println("{'return':'player number: " + playerToGame.size() + ", started game:" + player0GameUrl + "'}");

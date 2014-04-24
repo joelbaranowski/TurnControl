@@ -17,6 +17,7 @@ import javax.servlet.http.*;
 import request.ExceptionStringify;
 import request.JoinGame;
 import request.MethodWrapper;
+import request.PlayerJoined;
 import request.RegisterGame;
 import request.TakeTurn;
 
@@ -73,6 +74,8 @@ public class Test2Servlet extends HttpServlet {
 
 				Transaction tx = datastore.beginTransaction();
 				Long maxID = -1L;
+				Long newID = -1L;
+				
 				try {
 				Key playerKey = KeyFactory.createKey("JoinGameKey", "PlayerList");
 				Query query = new Query("JoinGame", playerKey);
@@ -86,7 +89,8 @@ public class Test2Servlet extends HttpServlet {
 				
 				
 				Entity newPlayer = new Entity("JoinGame", playerKey);
-				newPlayer.setProperty("playerID", maxID+1);
+				newID = maxID + 1;
+				newPlayer.setProperty("playerID", newID);
 				newPlayer.setProperty("gameURL", jg.getGameURL());
 				newPlayer.setProperty("playerName", jg.getPlayerName());
 				datastore.put(newPlayer);
@@ -98,6 +102,10 @@ public class Test2Servlet extends HttpServlet {
 					ExceptionStringify es = new ExceptionStringify(e);
 					resp.getWriter().print(es.run());
 				}
+				PlayerJoined pj = new PlayerJoined(newID, jg.getPlayerName());
+				MethodWrapper mew = new MethodWrapper("playerJoined", g.toJson(pj));
+				UrlPost ttp = new UrlPost();
+				ttp.run(mew, jg.gameURL);
 				resp.getWriter().println("player joined");
 				break;
 			}
@@ -169,7 +177,7 @@ public class Test2Servlet extends HttpServlet {
 				String gtj = g.toJson(tt);
 				resp.getWriter().println("gtj: " + gtj);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-				TakeTurnPost ttp = new TakeTurnPost();
+				UrlPost ttp = new UrlPost();
 				ttp.run(mew, newPlayerGameUrl);
 				break;
 				}
@@ -223,7 +231,7 @@ public class Test2Servlet extends HttpServlet {
 				TakeTurn tt = new TakeTurn(0L, 0L);
 				String gtj = g.toJson(tt);
 				MethodWrapper mew = new MethodWrapper("takeTurn", gtj);
-				TakeTurnPost ttp = new TakeTurnPost();
+				UrlPost ttp = new UrlPost();
 				ttp.run(mew, player0GameUrl);
 				resp.getWriter().println("{'return':'player number: " + playerToGame.size() + ", started game:" + player0GameUrl + "'}");
 				break;

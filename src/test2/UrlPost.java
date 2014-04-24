@@ -13,7 +13,7 @@ import com.google.gson.Gson;
  * @author Joel Baranowski
  * 
  */
-public class TakeTurnPost {
+public class UrlPost {
 
 	Gson g = new Gson();
 	
