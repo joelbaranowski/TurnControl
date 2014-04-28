@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,14 +23,17 @@ import servlets.DeletePlayersServlet;
 import servlets.DeleteStatusServlet;
 import servlets.EndGameServlet;
 import servlets.GetGameListServlet;
+import servlets.GetGameURLFromPortalServlet;
 import servlets.GetPlayerListServlet;
 import servlets.InitServlet;
 import servlets.JoinGameServlet;
 import servlets.RegisterGameServlet;
 import servlets.StartGameServlet;
 import servlets.TurnFinishedServlet;
+import Json.GetGameURLFromPortal;
 import Json.JoinGame;
 import Json.PlayerJoined;
+import Json.Portal;
 import Json.RegisterGame;
 import Json.TakeTurn;
 
@@ -47,6 +51,10 @@ import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @SuppressWarnings("serial")
 public class Test2Servlet extends HttpServlet {
@@ -81,6 +89,12 @@ public class Test2Servlet extends HttpServlet {
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
 		switch(method){
+			case "getGameURLFromPortal":{
+				GetGameURLFromPortalServlet ggufps = new GetGameURLFromPortalServlet();
+				GetGameURLFromPortal ggufp = g.fromJson(data, GetGameURLFromPortal.class);
+				ggufps.doModPost(ggufp, req, resp);
+				break;
+			}
 			case "joinGame":{
 				JoinGameServlet jgs = new JoinGameServlet();
 				JoinGame jg = (JoinGame) g.fromJson(data, JoinGame.class);
@@ -105,7 +119,11 @@ public class Test2Servlet extends HttpServlet {
 			}
 			case "registerGame":{
 				RegisterGameServlet rgs = new RegisterGameServlet();
-				RegisterGame rg = (RegisterGame) g.fromJson(data, RegisterGame.class);
+				JsonParser jp = new JsonParser();
+				JsonObject jo = jp.parse(data).getAsJsonObject();
+				String url = jo.get("url").getAsString();
+				Portal[] portals = g.fromJson(jo.get("portals"), Portal[].class);
+				RegisterGame rg = new RegisterGame(url, new ArrayList<Portal>(Arrays.asList(portals)));
 				rgs.doModPost(rg, req, resp);
 				break;
 			}

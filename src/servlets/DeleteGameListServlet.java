@@ -42,6 +42,25 @@ public class DeleteGameListServlet extends HttpServlet {
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().println(es.run());
 		}
-		resp.getWriter().println("Deleted gameList");
+		
+		tx = datastore.beginTransaction();
+		try{
+		Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
+		Query query = new Query("Portals", portalKey);
+		List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+		for (Entity existingEntity : portalList) {
+			datastore.delete(existingEntity.getKey());
+		}
+		tx.commit();
+		}
+		catch(Exception e){
+			if(tx.isActive()){
+				tx.rollback();
+			}
+			ExceptionStringify es = new ExceptionStringify(e);
+			resp.getWriter().println(es.run());
+		}
+		
+		resp.getWriter().println("Deleted gameList/portals");
 	}
 }
