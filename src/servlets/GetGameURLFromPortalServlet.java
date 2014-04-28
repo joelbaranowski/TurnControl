@@ -50,16 +50,17 @@ public class GetGameURLFromPortalServlet extends HttpServlet {
 		Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
 		Query query = new Query("Portals", portalKey);
 		List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		GetGameURLFromPortalResponse ggurfpr = new GetGameURLFromPortalResponse();
-		ggurfpr.setStatus("fail");
+		GetGameURLFromPortalResponse ggufpr = new GetGameURLFromPortalResponse();
+		ggufpr.setStatus("fail");
 		for(Entity e : portalList){
 			if(((Long)e.getProperty("portalID")).equals(ggufp.getPortalID())){
-				ggurfpr.setGameURL((String) e.getProperty("toGameURL"));
-				ggurfpr.setInboundPortalID((Long)e.getProperty("toGamePortalID"));
+				ggufpr.setGameURL((String) e.getProperty("toGameURL"));
+				ggufpr.setInboundPortalID((Long)e.getProperty("toGamePortalID"));
+				ggufpr.setPlayerID(ggufp.getPlayerID());
 			}
 		}
-		ggurfpr.setStatus("ok");
-		resp.getWriter().println(gson.toJson(ggurfpr));
+		ggufpr.setStatus("ok");
+		resp.getWriter().println(gson.toJson(ggufpr));
 		}
 		catch(Exception e){
 			ExceptionStringify es = new ExceptionStringify(e);

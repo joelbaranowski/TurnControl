@@ -5,16 +5,18 @@ public class GetGameURLFromPortalResponse {
 	private String status;
 	private String gameURL;
 	private Long inboundPortalID;
+	private Long playerID;
 	
 	public GetGameURLFromPortalResponse(){
 		
 	}
 	
 	public GetGameURLFromPortalResponse(String status, String gameURL,
-			Long inboundPortalID) {
+			Long inboundPortalID, Long playerID) {
 		this.status = status;
 		this.gameURL = gameURL;
 		this.inboundPortalID = inboundPortalID;
+		this.playerID = playerID;
 	}
 
 	public String getStatus() {
@@ -39,6 +41,14 @@ public class GetGameURLFromPortalResponse {
 
 	public void setInboundPortalID(Long inboundPortalID) {
 		this.inboundPortalID = inboundPortalID;
+	}
+
+	public Long getPlayerID() {
+		return playerID;
+	}
+
+	public void setPlayerID(Long playerID) {
+		this.playerID = playerID;
 	}
 	
 }
