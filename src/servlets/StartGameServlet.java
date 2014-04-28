@@ -1,6 +1,7 @@
 package servlets;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ public class StartGameServlet extends HttpServlet {
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 		
+		doPortalAssignment(req, resp);
 		Transaction tx2 = datastore.beginTransaction();
 		Key idKey = KeyFactory.createKey("isStarted", "gameStartedStatus");
 		Entity a = new Entity(idKey);
@@ -81,6 +83,11 @@ public class StartGameServlet extends HttpServlet {
 		postUtil.sendPost(gson.toJson(takeTurnPacket,TakeTurn.class), player0GameUrl+"/takeTurn");
 		System.out.println("sending take turn packet");
 		resp.getWriter().println("{'return':'player number: " + playerToGame.size() + ", started game:" + player0GameUrl + "'}");
+	}
+
+	private void doPortalAssignment(HttpServletRequest req,
+			HttpServletResponse resp) throws IOException {
+		
 	}
 
 	public void deletePlayerScores( HttpServletResponse resp) throws IOException{

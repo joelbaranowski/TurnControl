@@ -21,6 +21,7 @@ import servlets.DeleteGameListServlet;
 import servlets.DeletePlayerScoresServlet;
 import servlets.DeletePlayersServlet;
 import servlets.DeleteStatusServlet;
+import servlets.DoPortalAssignmentServlet;
 import servlets.EndGameServlet;
 import servlets.GetGameListServlet;
 import servlets.GetGameURLFromPortalServlet;
@@ -89,6 +90,11 @@ public class Test2Servlet extends HttpServlet {
 	
 	private void execute(String method, String data, HttpServletRequest req, HttpServletResponse resp) throws IOException{
 		switch(method){
+			case "doPortalAssignment":{
+				DoPortalAssignmentServlet dpas = new DoPortalAssignmentServlet();
+				dpas.doGet(req, resp);
+				break;
+			}
 			case "getGameURLFromPortal":{
 				GetGameURLFromPortalServlet ggufps = new GetGameURLFromPortalServlet();
 				GetGameURLFromPortal ggufp = g.fromJson(data, GetGameURLFromPortal.class);
