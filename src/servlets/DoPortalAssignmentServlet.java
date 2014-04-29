@@ -30,12 +30,12 @@ public class DoPortalAssignmentServlet extends HttpServlet {
 	DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
 	private Gson gson = new Gson();
 
-	
+
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 		doGet(req, resp);
 	}
-	
+
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {		
 		Transaction tx = datastore.beginTransaction();
@@ -43,7 +43,7 @@ public class DoPortalAssignmentServlet extends HttpServlet {
 			Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
 			Query query = new Query("Portals", portalKey);
 			List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-			
+
 			for(Entity e : portalList){
 				if(!(Boolean)e.getProperty("isOutbound")){
 					continue;
@@ -51,7 +51,7 @@ public class DoPortalAssignmentServlet extends HttpServlet {
 				Entity ent = e;
 				String fromGameURL = (String)e.getProperty("fromGameURL");
 				Random r = new Random();
-				
+
 				List<Entity> subList = new ArrayList<Entity>();
 				for(Entity e2 : portalList){
 					if(!(e2.getProperty("toGameURL").equals(fromGameURL)) && !((Boolean)e2.getProperty("isOutbound"))){
@@ -66,8 +66,8 @@ public class DoPortalAssignmentServlet extends HttpServlet {
 				datastore.delete(e.getKey());
 				datastore.put(ent);
 			}
-			
-		tx.commit();
+
+			tx.commit();
 		}
 		catch(Exception e){
 			if(tx.isActive())

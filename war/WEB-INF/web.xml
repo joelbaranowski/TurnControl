@@ -123,6 +123,16 @@ http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
 	</servlet-mapping>
 	
 	<servlet>
+		<servlet-name>GetGameURLFromPortalServlet</servlet-name>
+		<servlet-class>servlets.GetGameURLFromPortalServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GetGameURLFromPortalServlet</servlet-name>
+		<url-pattern>/getGameURLFromPortal</url-pattern>
+	</servlet-mapping>
+	
+	
+	<servlet>
 		<servlet-name>Test2</servlet-name>
 		<servlet-class>test2.Test2Servlet</servlet-class>
 	</servlet>

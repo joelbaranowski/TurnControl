@@ -43,24 +43,24 @@ public class RegisterGameServlet extends HttpServlet {
 		RegisterGame rg = new RegisterGame(url, new ArrayList<Portal>(Arrays.asList(portals)));
 		doModPost(rg, req, resp);
 	}
-	
+
 	public void doModPost(RegisterGame rg, HttpServletRequest req, HttpServletResponse resp) throws IOException{
 		Transaction tx = datastore.beginTransaction();
 		try {
-		
-		Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
-		Query query = new Query("RegisterGame", gameKey);
-		List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		for(Entity e : gameList)
-			if(e.getProperty("url").equals(rg.getUrl())){
-				resp.getWriter().println("Game already registered");
-				return;
-			}
-		
-		Entity newGame = new Entity("RegisterGame", gameKey);
-		newGame.setProperty("url", rg.getUrl());
-		datastore.put(newGame);
-		tx.commit();
+
+			Key gameKey = KeyFactory.createKey("RegisterGameKey", "GameList");
+			Query query = new Query("RegisterGame", gameKey);
+			List<Entity> gameList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			for(Entity e : gameList)
+				if(e.getProperty("url").equals(rg.getUrl())){
+					resp.getWriter().println("Game already registered");
+					return;
+				}
+
+			Entity newGame = new Entity("RegisterGame", gameKey);
+			newGame.setProperty("url", rg.getUrl());
+			datastore.put(newGame);
+			tx.commit();
 		}
 		catch(Exception e){
 			if(tx.isActive())
@@ -68,30 +68,30 @@ public class RegisterGameServlet extends HttpServlet {
 			ExceptionStringify es = new ExceptionStringify(e);
 			resp.getWriter().print(es.run());
 		}
-		
+
 		tx = datastore.beginTransaction();
 		ArrayList<Long> portalIDs = new ArrayList<Long>();
 		try{
-		Long newID = -1L;
-		Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
-		Query query = new Query("Portals", portalKey);
-		List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		for(Entity e : portalList){
-			if((Long)e.getProperty("portalID") > newID)
-				newID = (Long)e.getProperty("portalID");
-		}
-			
-		for(Portal p : rg.getPortals()){
-			Entity newPortal = new Entity("Portals", portalKey);
-			newPortal.setProperty("fromGameURL", rg.getUrl());
-			newPortal.setProperty("toGameURL", "null");
-			newPortal.setProperty("toGamePortalID", -1L);
-			newPortal.setProperty("portalID", ++newID);
-			portalIDs.add(newID);
-			newPortal.setProperty("isOutbound", p.getIsOutbound());
-			datastore.put(newPortal);
-		}
-		tx.commit();
+			Long newID = -1L;
+			Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
+			Query query = new Query("Portals", portalKey);
+			List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			for(Entity e : portalList){
+				if((Long)e.getProperty("portalID") > newID)
+					newID = (Long)e.getProperty("portalID");
+			}
+
+			for(Portal p : rg.getPortals()){
+				Entity newPortal = new Entity("Portals", portalKey);
+				newPortal.setProperty("fromGameURL", rg.getUrl());
+				newPortal.setProperty("toGameURL", "null");
+				newPortal.setProperty("toGamePortalID", -1L);
+				newPortal.setProperty("portalID", ++newID);
+				portalIDs.add(newID);
+				newPortal.setProperty("isOutbound", p.getIsOutbound());
+				datastore.put(newPortal);
+			}
+			tx.commit();
 		}
 		catch(Exception e){
 			if(tx.isActive())

@@ -38,29 +38,35 @@ public class GetGameURLFromPortalServlet extends HttpServlet {
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
 
-		System.out.println("joining a game");
 		// Parse request 
 		BufferedReader br = new BufferedReader(new InputStreamReader(req.getInputStream()));    
 		GetGameURLFromPortal ggufp = gson.fromJson(br, GetGameURLFromPortal.class);
 		doModPost(ggufp, req, resp);
 	}
-	
+
 	public void doModPost(GetGameURLFromPortal ggufp, HttpServletRequest req, HttpServletResponse resp) throws IOException{
 		try{
-		Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
-		Query query = new Query("Portals", portalKey);
-		List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
-		GetGameURLFromPortalResponse ggufpr = new GetGameURLFromPortalResponse();
-		ggufpr.setStatus("fail");
-		for(Entity e : portalList){
-			if(((Long)e.getProperty("portalID")).equals(ggufp.getPortalID())){
-				ggufpr.setGameURL((String) e.getProperty("toGameURL"));
-				ggufpr.setInboundPortalID((Long)e.getProperty("toGamePortalID"));
-				ggufpr.setPlayerID(ggufp.getPlayerID());
+			Key portalKey = KeyFactory.createKey("RegisterPortals", "PortalList");
+			Query query = new Query("Portals", portalKey);
+			List<Entity> portalList = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+			GetGameURLFromPortalResponse ggufpr = new GetGameURLFromPortalResponse();
+			ggufpr.setStatus("fail");
+			
+			System.out.println("GetGameURLFromPortalServlet portalList size " + portalList.size());
+			for(Entity e : portalList){
+				if(((Long)e.getProperty("portalID")).equals(ggufp.getPortalID())){
+					
+					ggufpr.setGameURL((String) e.getProperty("toGameURL"));
+					ggufpr.setInboundPortalID((Long)e.getProperty("toGamePortalID"));
+					ggufpr.setPlayerID(ggufp.getPlayerID());
+					System.out.println("GetGameURLFromPortalServlet: sending back redirect");
+					System.out.println("GameURL"+ggufpr.getGameURL());
+					System.out.println("InboundPortalID "+ggufpr.getInboundPortalID());
+					System.out.println("PlayerID "+ggufpr.getPlayerID());	
+				}
 			}
-		}
-		ggufpr.setStatus("ok");
-		resp.getWriter().println(gson.toJson(ggufpr));
+			ggufpr.setStatus("ok");
+			resp.getWriter().println(gson.toJson(ggufpr));
 		}
 		catch(Exception e){
 			ExceptionStringify es = new ExceptionStringify(e);
